@@ -1,17 +1,14 @@
-# pruebas_numeros
+# Juego Brilliant proyecto escolar
 
-A new Flutter project.
+Juego de lógica sobre un tablero de 7×7. Cada casilla lleva un número del 1 al 6
+y pertenece a una zona de color, y cada color exige algo distinto de los números
+que hay dentro.
 
-## Getting Started
+## Reglas
 
-This project is a starting point for a Flutter application.
+- **Rojo** y **amarillo**: todos los números distintos entre sí
+- **Azul**: todos los números iguales
+- **Morado**: como máximo dos valores distintos
+- **Verde**: acepta cualquier número del 1 al 6
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Ganás cuando el tablero queda completo y todas las zonas cumplen su regla.
