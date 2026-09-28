@@ -7,14 +7,11 @@ class Tablero {
 
   Tablero(this.tipos, this.zonasPorCelda, this.valores);
 
-  static const List<List<int>> anclasNivel1 = [
-    [0, 2], 
-    [1, 5],
-    [3, 1], 
-    [3, 4], 
-    [5, 2], 
-    [6, 4], 
+
+     static const List<(int, int)> anclasNivel1 = [
+    (0, 2), (1, 5), (3, 1), (3, 4), (5, 2), (6, 4),
   ];
+
   
 
   factory Tablero.nivel1() {
