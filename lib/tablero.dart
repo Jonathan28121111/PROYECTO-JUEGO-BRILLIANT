@@ -7,6 +7,16 @@ class Tablero {
 
   Tablero(this.tipos, this.zonasPorCelda, this.valores);
 
+  static const List<List<int>> anclasNivel1 = [
+    [0, 2], 
+    [1, 5],
+    [3, 1], 
+    [3, 4], 
+    [5, 2], 
+    [6, 4], 
+  ];
+  
+
   factory Tablero.nivel1() {
     const r = Tipo.rojo;
     const a = Tipo.amarillo;
@@ -41,6 +51,18 @@ class Tablero {
         [1, 4, 1, 4, 1, 2, 4],
         [5, 6, 4, 3, 4, 4, 4],
         [2, 1, 1, 6, 5, 4, 6],
+      ],
+    );
+  }
+
+  
+  factory Tablero.nivel1Inicial() {
+    final completo = Tablero.nivel1();
+    return Tablero(
+      completo.tipos,
+      completo.zonasPorCelda,
+      <List<int?>>[
+        for (final fila in completo.valores) <int?>[for (final _ in fila) null],
       ],
     );
   }
