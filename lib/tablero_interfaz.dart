@@ -5,17 +5,21 @@ import 'tipo_zona.dart';
 
 class TableroInterfaz extends StatelessWidget {
   final Tablero tablero;
-  final List<List<int>> anclas;
+  final List<(int, int)> anclas;
+  final Map<(int, int), int> numeros;
+  final bool arrastrando;
+  final void Function((int, int) celda, int numero) alSoltar;
+  final void Function((int, int) celda) alQuitar;
 
   const TableroInterfaz({
     super.key,
     required this.tablero,
     required this.anclas,
+    required this.numeros,
+    required this.arrastrando,
+    required this.alSoltar,
+    required this.alQuitar,
   });
-
-  bool _esAncla(int fila, int columna) {
-    return anclas.any((a) => a[0] == fila && a[1] == columna);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,13 @@ class TableroInterfaz extends StatelessWidget {
                       Expanded(
                         child: _Celda(
                           tipo: tablero.tipos[fila][columna],
-                          esAncla: _esAncla(fila, columna),
+                          esAncla: anclas.contains((fila, columna)),
+                          numero: numeros[(fila, columna)],
+                          llamando: arrastrando &&
+                              anclas.contains((fila, columna)) &&
+                              numeros[(fila, columna)] == null,
+                          alSoltar: (n) => alSoltar((fila, columna), n),
+                          alQuitar: () => alQuitar((fila, columna)),
                         ),
                       ),
                   ],
@@ -53,18 +63,29 @@ class TableroInterfaz extends StatelessWidget {
 class _Celda extends StatelessWidget {
   final Tipo tipo;
   final bool esAncla;
+  final int? numero;
+  final bool llamando;
+  final void Function(int) alSoltar;
+  final VoidCallback alQuitar;
 
-  const _Celda({required this.tipo, required this.esAncla});
+  const _Celda({
+    required this.tipo,
+    required this.esAncla,
+    required this.numero,
+    required this.llamando,
+    required this.alSoltar,
+    required this.alQuitar,
+  });
 
   @override
   Widget build(BuildContext context) {
     final color = _colorDe(tipo);
-    final colorEstrella =
+    final colorTexto =
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
             ? Colors.white
             : Colors.black87;
 
-    return Container(
+    final celda = Container(
       decoration: BoxDecoration(
         color: color,
         border: Border.all(color: Colors.black, width: 1),
@@ -72,18 +93,64 @@ class _Celda extends StatelessWidget {
       child: !esAncla
           ? null
           : LayoutBuilder(
-              builder: (context, restricciones) => Padding(
-                padding: EdgeInsets.all(restricciones.maxWidth * 0.06),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Icon(
-                    Icons.star,
-                    size: restricciones.maxWidth * 0.28,
-                    color: colorEstrella,
+              builder: (context, r) => Stack(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(r.maxWidth * 0.06),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: AnimatedScale(
+                        scale: llamando ? 1.6 : 1.0,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOut,
+                        child: Icon(
+                          Icons.star,
+                          size: r.maxWidth * 0.28,
+                          color: colorTexto,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  if (numero != null)
+                    Center(
+                      child: Text(
+                        '$numero',
+                        style: TextStyle(
+                          fontSize: r.maxWidth * 0.5,
+                          fontWeight: FontWeight.bold,
+                          color: colorTexto,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
+    );
+
+    if (!esAncla) return celda;
+
+    return DragTarget<int>(
+      onAcceptWithDetails: (detalles) => alSoltar(detalles.data),
+      builder: (context, candidatos, _) => GestureDetector(
+        onTap: numero == null ? null : alQuitar,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            celda,
+            IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: candidatos.isNotEmpty
+                    ? 0.45
+                    : llamando
+                        ? 0.15
+                        : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
