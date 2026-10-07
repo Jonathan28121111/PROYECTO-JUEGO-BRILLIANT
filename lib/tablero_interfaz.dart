@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'colores.dart';
 
 import 'tablero.dart';
 import 'tipo_zona.dart';
@@ -79,8 +80,8 @@ class _Celda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colorDe(tipo);
-    final colorTexto =
+    final color = colorDe(tipo);
+    final colorTexto = colorTextoSobre(color);
         ThemeData.estimateBrightnessForColor(color) == Brightness.dark
             ? Colors.white
             : Colors.black87;
@@ -154,18 +155,4 @@ class _Celda extends StatelessWidget {
     );
   }
 
-  Color _colorDe(Tipo tipo) {
-    switch (tipo) {
-      case Tipo.rojo:
-        return const Color(0xFFE53935);
-      case Tipo.amarillo:
-        return const Color(0xFFFDD835);
-      case Tipo.verde:
-        return const Color(0xFF43A047);
-      case Tipo.azul:
-        return const Color(0xFF1E88E5);
-      case Tipo.morado:
-        return const Color(0xFF8E24AA);
-    }
-  }
 }
