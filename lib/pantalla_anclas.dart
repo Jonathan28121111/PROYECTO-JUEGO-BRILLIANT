@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'panel_reglas.dart';
 import 'tablero.dart';
+import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
 
 const Color verdePastel = Color(0xFFA5D6A7);
@@ -34,82 +36,76 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
     setState(() => numeros.remove(celda));
   }
 
+  Tablero _tableroConAnclas() {
+    final conAnclas = Tablero.nivel1Inicial();
+    numeros.forEach((celda, numero) {
+      conAnclas.valores[celda.$1][celda.$2] = numero;
+    });
+    return conAnclas;
+  }
+
   @override
   Widget build(BuildContext context) {
     final usados = numeros.values.toSet();
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Juego Brilliant')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  const SizedBox(
-                    width: 150,
-                    child: PanelReglas(reglas: reglasIzquierda),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: TableroInterfaz(
-                        tablero: tablero,
-                        anclas: Tablero.anclasNivel1,
-                        numeros: numeros,
-                        arrastrando: arrastrando,
-                        alSoltar: _soltar,
-                        alQuitar: _quitar,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 150,
+                  child: PanelReglas(reglas: reglasIzquierda),
+                ),
+                Expanded(
+                  child: Center(
+                    child: TableroInterfaz(
+                      tablero: tablero,
+                      anclas: Tablero.anclasNivel1,
+                      numeros: numeros,
+                      arrastrando: arrastrando,
+                      alSoltar: _soltar,
+                      alQuitar: _quitar,
                     ),
                   ),
-                  const SizedBox(
-                    width: 150,
-                    child: PanelReglas(reglas: reglasDerecha),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var n = 1; n <= 6; n++)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: usados.contains(n)
-                        ? const _Hueco()
-                        : _Ficha(
-                            numero: n,
-                            alEmpezar: () =>
-                                setState(() => arrastrando = true),
-                            alTerminar: () =>
-                                setState(() => arrastrando = false),
-                          ),
-                  ),
+                ),
+                const SizedBox(
+                  width: 150,
+                  child: PanelReglas(reglas: reglasDerecha),
+                ),
               ],
             ),
-            const SizedBox(height: 20),
-            _BotonProgreso(
-              puestos: numeros.length,
-              total: total,
-              alTocar: completo
-                  ? () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          backgroundColor: Colors.white,
-                          content: Text(
-                            'Números ancla listos',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var n = 1; n <= 6; n++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: usados.contains(n)
+                      ? const _Hueco()
+                      : _Ficha(
+                          numero: n,
+                          alEmpezar: () => setState(() => arrastrando = true),
+                          alTerminar: () => setState(() => arrastrando = false),
                         ),
-                      )
-                  : null,
-            ),
-          ],
-        ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _BotonProgreso(
+            puestos: numeros.length,
+            total: total,
+            alTocar: completo
+                ? () => context.read<TableroBloc>().add(
+                      ValoresInicialesProporcionados(_tableroConAnclas()),
+                    )
+                : null,
+          ),
+        ],
       ),
     );
   }
