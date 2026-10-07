@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_interfaz.dart';
 
@@ -44,15 +45,29 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
         child: Column(
           children: [
             Expanded(
-              child: Center(
-                child: TableroInterfaz(
-                  tablero: tablero,
-                  anclas: Tablero.anclasNivel1,
-                  numeros: numeros,
-                  arrastrando: arrastrando,
-                  alSoltar: _soltar,
-                  alQuitar: _quitar,
-                ),
+              child: Row(
+                children: [
+                  const SizedBox(
+                    width: 150,
+                    child: PanelReglas(reglas: reglasIzquierda),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: TableroInterfaz(
+                        tablero: tablero,
+                        anclas: Tablero.anclasNivel1,
+                        numeros: numeros,
+                        arrastrando: arrastrando,
+                        alSoltar: _soltar,
+                        alQuitar: _quitar,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 150,
+                    child: PanelReglas(reglas: reglasDerecha),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
