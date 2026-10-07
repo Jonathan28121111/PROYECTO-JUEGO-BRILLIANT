@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pantalla_anclas.dart';
+import 'pantalla_juego.dart';
 
 void main() {
   runApp(const JuegoBrilliantApp());
@@ -15,7 +15,7 @@ class JuegoBrilliantApp extends StatelessWidget {
       title: 'Juego Brilliant',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.indigo),
-      home: const PantallaAnclas(),
+      home: const PantallaJuego(),
     );
   }
 }

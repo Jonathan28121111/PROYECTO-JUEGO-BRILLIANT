@@ -90,7 +90,7 @@ class _TarjetaRegla extends StatelessWidget {
                   height: 22,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF26A69A),
+                    border: Border.all(color: Colors.black38, width: 1.5),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
@@ -98,7 +98,7 @@ class _TarjetaRegla extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                 ),
