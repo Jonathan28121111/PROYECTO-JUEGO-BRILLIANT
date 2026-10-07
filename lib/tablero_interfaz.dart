@@ -21,7 +21,7 @@ class TableroInterfaz extends StatelessWidget {
     required this.alQuitar,
   });
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: 1,
@@ -31,16 +31,16 @@ class TableroInterfaz extends StatelessWidget {
         ),
         child: Column(
           children: [
-            for (var fila = 0; fila < tablero.tipos.length; fila++)
+            for (var fila = 0; fila < tablero.zonasPorCelda.length; fila++)
               Expanded(
                 child: Row(
                   children: [
                     for (var columna = 0;
-                        columna < tablero.tipos[fila].length;
+                        columna < tablero.zonasPorCelda[fila].length;
                         columna++)
                       Expanded(
                         child: _Celda(
-                          tipo: tablero.tipos[fila][columna],
+                          tipo: tablero.tipoDe(fila, columna),
                           esAncla: anclas.contains((fila, columna)),
                           numero: numeros[(fila, columna)],
                           llamando: arrastrando &&

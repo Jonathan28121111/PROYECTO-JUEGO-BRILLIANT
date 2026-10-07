@@ -6,11 +6,9 @@ import 'package:pruebas_numeros/tipo_zona.dart';
 Tablero tableroAMedias() {
   return Tablero(
     [
-      [Tipo.rojo, Tipo.rojo],
-    ],
-    [
       [1, 1],
     ],
+    {1: Tipo.rojo},
     [
       [1, null],
     ],

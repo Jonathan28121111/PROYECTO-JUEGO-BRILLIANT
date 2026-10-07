@@ -4,31 +4,22 @@ import 'package:pruebas_numeros/tipo_zona.dart';
 
 void main() {
   group('Tablero.nivel1', () {
-    test('tiene 7 filas y 7 columnas en tipos, zonas y valores', () {
+    test('tiene 7 filas y 7 columnas en zonas y valores', () {
       final tablero = Tablero.nivel1();
-      expect(tablero.tipos.length, 7);
       expect(tablero.zonasPorCelda.length, 7);
       expect(tablero.valores.length, 7);
       for (var fila = 0; fila < 7; fila++) {
-        expect(tablero.tipos[fila].length, 7);
         expect(tablero.zonasPorCelda[fila].length, 7);
         expect(tablero.valores[fila].length, 7);
       }
     });
 
-    test('cada celda de una misma zona tiene siempre el mismo color', () {
+    test('todas las celdas pertenecen a una zona con color declarado', () {
       final tablero = Tablero.nivel1();
-      final colorPorZona = <int, Tipo>{};
-      for (var fila = 0; fila < tablero.zonasPorCelda.length; fila++) {
-        for (var columna = 0; columna < tablero.zonasPorCelda[fila].length; columna++) {
-          final id = tablero.zonasPorCelda[fila][columna];
-          final tipo = tablero.tipos[fila][columna];
-          final tipoPrevio = colorPorZona[id];
-          if (tipoPrevio == null) {
-            colorPorZona[id] = tipo;
-          } else {
-            expect(tipo, tipoPrevio, reason: 'la zona $id mezcla colores distintos');
-          }
+      for (final fila in tablero.zonasPorCelda) {
+        for (final id in fila) {
+          expect(tablero.coloresPorZona.containsKey(id), true,
+              reason: 'la zona $id no tiene color');
         }
       }
     });
@@ -39,6 +30,28 @@ void main() {
 
     test('es válido porque respeta las reglas de cada color', () {
       expect(Tablero.nivel1().esValido(), true);
+    });
+  });
+
+  group('Tablero.nivel1Inicial', () {
+    test('tiene el mismo tablero pero sin ningún número', () {
+      final inicial = Tablero.nivel1Inicial();
+      expect(inicial.zonasPorCelda, Tablero.nivel1().zonasPorCelda);
+      expect(inicial.estaCompleto(), false);
+      for (final fila in inicial.valores) {
+        expect(fila.every((v) => v == null), true);
+      }
+    });
+  });
+
+  group('tipoDe', () {
+    test('devuelve el color de la zona a la que pertenece la celda', () {
+      final tablero = Tablero.nivel1();
+      expect(tablero.tipoDe(0, 0), Tipo.amarillo);
+      expect(tablero.tipoDe(0, 2), Tipo.azul);
+      expect(tablero.tipoDe(2, 1), Tipo.rojo);
+      expect(tablero.tipoDe(3, 2), Tipo.morado);
+      expect(tablero.tipoDe(1, 0), Tipo.verde);
     });
   });
 
@@ -87,36 +100,6 @@ void main() {
       for (final zona in Tablero.nivel1().zonas()) {
         expect(zona.esValida(), true, reason: 'la zona ${zona.id} no es válida');
       }
-    });
-  });
-
-  group('valoresDe', () {
-    test('extrae los valores del rojo', () {
-      expect(Tablero.nivel1().valoresDe(Tipo.rojo), [2, 3, 1, 4, 1, 2, 5, 6, 3, 4, 6, 5]);
-    });
-
-    test('extrae los valores del amarillo', () {
-      expect(Tablero.nivel1().valoresDe(Tipo.amarillo), [1, 5, 3, 2, 6]);
-    });
-
-    test('extrae los valores del verde', () {
-      expect(Tablero.nivel1().valoresDe(Tipo.verde), [5, 2, 5, 2, 3, 2, 4, 6, 3, 3, 6, 1]);
-    });
-
-    test('extrae los valores del azul', () {
-      expect(Tablero.nivel1().valoresDe(Tipo.azul), [2, 2, 2, 2, 4, 4, 4, 4]);
-    });
-
-    test('extrae los valores del morado', () {
-      expect(Tablero.nivel1().valoresDe(Tipo.morado), [6, 3, 6, 3, 6, 3, 4, 1, 4, 4, 1, 1]);
-    });
-  });
-
-  group('estaCompleto', () {
-    test('es falso si falta un valor', () {
-      final tablero = Tablero.nivel1();
-      tablero.valores[0][0] = null;
-      expect(tablero.estaCompleto(), false);
     });
   });
 

@@ -1,36 +1,21 @@
 import 'tipo_zona.dart';
 
 class Tablero {
-  final List<List<Tipo>> tipos;
   final List<List<int>> zonasPorCelda;
+  final Map<int, Tipo> coloresPorZona;
   final List<List<int?>> valores;
 
-  Tablero(this.tipos, this.zonasPorCelda, this.valores);
+  Tablero(this.zonasPorCelda, this.coloresPorZona, this.valores);
 
-
-     static const List<(int, int)> anclasNivel1 = [
+  static const List<(int, int)> anclasNivel1 = [
     (0, 2), (1, 5), (3, 1), (3, 4), (5, 2), (6, 4),
   ];
 
-  
+  Tipo tipoDe(int fila, int columna) =>
+      coloresPorZona[zonasPorCelda[fila][columna]]!;
 
   factory Tablero.nivel1() {
-    const r = Tipo.rojo;
-    const a = Tipo.amarillo;
-    const v = Tipo.verde;
-    const z = Tipo.azul;
-    const m = Tipo.morado;
-
     return Tablero(
-      [
-        [a, v, z, m, m, m, a],
-        [v, v, z, z, m, m, v],
-        [v, r, r, z, m, v, v],
-        [v, r, m, a, v, v, v],
-        [v, r, m, m, r, r, z],
-        [r, r, m, r, r, z, z],
-        [a, m, m, r, r, z, a],
-      ],
       [
         [1, 2, 3, 4, 4, 4, 1],
         [2, 2, 3, 3, 4, 4, 6],
@@ -40,6 +25,17 @@ class Tablero {
         [7, 7, 8, 10, 10, 11, 11],
         [1, 8, 8, 10, 10, 11, 1],
       ],
+      {
+        1: Tipo.amarillo,
+        2: Tipo.verde,
+        3: Tipo.azul,
+        4: Tipo.morado,
+        6: Tipo.verde,
+        7: Tipo.rojo,
+        8: Tipo.morado,
+        10: Tipo.rojo,
+        11: Tipo.azul,
+      },
       [
         [1, 5, 2, 6, 3, 6, 5],
         [2, 5, 2, 2, 3, 6, 2],
@@ -52,12 +48,11 @@ class Tablero {
     );
   }
 
-  
   factory Tablero.nivel1Inicial() {
     final completo = Tablero.nivel1();
     return Tablero(
-      completo.tipos,
       completo.zonasPorCelda,
+      completo.coloresPorZona,
       <List<int?>>[
         for (final fila in completo.valores) <int?>[for (final _ in fila) null],
       ],
@@ -65,12 +60,15 @@ class Tablero {
   }
 
   Zona zona(int id) {
-    Tipo? tipo;
+    final tipo = coloresPorZona[id];
+    if (tipo == null) {
+      throw ArgumentError('No existe la zona $id');
+    }
+
     final encontrados = <int>[];
     for (var fila = 0; fila < zonasPorCelda.length; fila++) {
       for (var columna = 0; columna < zonasPorCelda[fila].length; columna++) {
         if (zonasPorCelda[fila][columna] == id) {
-          tipo ??= tipos[fila][columna];
           final valor = valores[fila][columna];
           if (valor != null) {
             encontrados.add(valor);
@@ -78,34 +76,12 @@ class Tablero {
         }
       }
     }
-    if (tipo == null) {
-      throw ArgumentError('No existe la zona $id');
-    }
     return Zona(id, tipo, encontrados);
   }
 
   List<Zona> zonas() {
-    final ids = <int>{};
-    for (final fila in zonasPorCelda) {
-      ids.addAll(fila);
-    }
-    final lista = ids.toList()..sort();
-    return lista.map(zona).toList();
-  }
-
-  List<int> valoresDe(Tipo tipo) {
-    final resultado = <int>[];
-    for (var fila = 0; fila < tipos.length; fila++) {
-      for (var columna = 0; columna < tipos[fila].length; columna++) {
-        if (tipos[fila][columna] == tipo) {
-          final valor = valores[fila][columna];
-          if (valor != null) {
-            resultado.add(valor);
-          }
-        }
-      }
-    }
-    return resultado;
+    final ids = coloresPorZona.keys.toList()..sort();
+    return ids.map(zona).toList();
   }
 
   bool estaCompleto() {
