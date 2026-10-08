@@ -7,8 +7,7 @@ import 'vista_juego.dart';
 
 class PantallaJuego extends StatelessWidget {
   const PantallaJuego({super.key});
-
-  @override
+ @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => TableroBloc(),
@@ -17,7 +16,8 @@ class PantallaJuego extends StatelessWidget {
         body: BlocBuilder<TableroBloc, TableroState>(
           builder: (context, estado) => switch (estado) {
             TableroSinIniciar() => const PantallaAnclas(),
-            TableroEnJuego(:final tablero) => VistaJuego(tablero: tablero),
+            TableroEnJuego(:final tablero, :final dados) =>
+              VistaJuego(tablero: tablero, dados: dados),
             TableroResuelto(:final tablero) =>
               VistaJuego(tablero: tablero, resuelto: true),
           },
