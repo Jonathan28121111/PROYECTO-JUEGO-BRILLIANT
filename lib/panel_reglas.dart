@@ -30,15 +30,16 @@ class PanelReglas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (final regla in reglas)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: _TarjetaRegla(regla: regla),
-          ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          for (final regla in reglas)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: _TarjetaRegla(regla: regla),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -55,30 +56,30 @@ class _TarjetaRegla extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 54,
-          height: 54,
+          width: 46,
+          height: 46,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: color,
             border: Border.all(color: Colors.black, width: 2),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
           ),
           child: Text(
             regla.simbolo,
             style: TextStyle(
-              fontSize: regla.simbolo.length > 1 ? 20 : 28,
+              fontSize: regla.simbolo.length > 1 ? 17 : 24,
               fontWeight: FontWeight.bold,
               color: colorTextoSobre(color),
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         Text(
           regla.descripcion,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 11, height: 1.2),
+          style: const TextStyle(fontSize: 10, height: 1.2),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -86,8 +87,8 @@ class _TarjetaRegla extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Container(
-                  width: 22,
-                  height: 22,
+                  width: 20,
+                  height: 20,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.black38, width: 1.5),
@@ -96,7 +97,7 @@ class _TarjetaRegla extends StatelessWidget {
                   child: Text(
                     '$punto',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),

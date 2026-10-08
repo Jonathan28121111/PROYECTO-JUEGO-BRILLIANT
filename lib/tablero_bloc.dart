@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'dados.dart';
 import 'tablero.dart';
 
 sealed class TableroEvent {}
@@ -9,6 +12,8 @@ class ValoresInicialesProporcionados extends TableroEvent {
 
   ValoresInicialesProporcionados(this.tablero);
 }
+
+class DadosTirados extends TableroEvent {}
 
 class NumeroColocado extends TableroEvent {
   final int fila;
@@ -30,8 +35,9 @@ class TableroSinIniciar extends TableroState {
 
 class TableroEnJuego extends TableroState {
   final Tablero tablero;
+  final Dados? dados;
 
-  TableroEnJuego(this.tablero);
+  TableroEnJuego(this.tablero, {this.dados});
 
   @override
   bool get puedeAvanzar => true;
@@ -47,9 +53,22 @@ class TableroResuelto extends TableroState {
 }
 
 class TableroBloc extends Bloc<TableroEvent, TableroState> {
-  TableroBloc() : super(const TableroSinIniciar()) {
+  final Random _azar;
+
+  TableroBloc({Random? azar})
+      : _azar = azar ?? Random(),
+        super(const TableroSinIniciar()) {
     on<ValoresInicialesProporcionados>((event, emit) {
       emit(_estadoSegun(event.tablero));
+    });
+
+    on<DadosTirados>((event, emit) {
+      final estadoActual = state;
+      // Sin valores iniciales no se avanza: tampoco se tira.
+      if (estadoActual is! TableroEnJuego) {
+        return;
+      }
+      emit(TableroEnJuego(estadoActual.tablero, dados: Dados.tirar(_azar)));
     });
 
     on<NumeroColocado>((event, emit) {
@@ -70,14 +89,14 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
       }
 
       tablero.valores[event.fila][event.columna] = event.numero;
-      emit(_estadoSegun(tablero));
+      emit(_estadoSegun(tablero, estadoActual.dados));
     });
   }
 
-  TableroState _estadoSegun(Tablero tablero) {
+  TableroState _estadoSegun(Tablero tablero, [Dados? dados]) {
     if (tablero.estaCompleto() && tablero.esValido()) {
       return TableroResuelto(tablero);
     }
-    return TableroEnJuego(tablero);
+    return TableroEnJuego(tablero, dados: dados);
   }
 }
