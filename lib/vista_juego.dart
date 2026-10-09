@@ -50,7 +50,7 @@ class VistaJuego extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, restricciones) {
         final altoTablero =
-            (restricciones.maxHeight - 200).clamp(220.0, 600.0).toDouble();
+            (restricciones.maxHeight - 250).clamp(220.0, 600.0).toDouble();
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -86,6 +86,11 @@ class VistaJuego extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 14),
+              _Marcador(
+                puntos: tablero.puntos,
+                zonas: tablero.zonasCompletas().length,
               ),
               const SizedBox(height: 14),
               Row(
@@ -141,6 +146,44 @@ class VistaJuego extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _Marcador extends StatelessWidget {
+  final int puntos;
+  final int zonas;
+
+  const _Marcador({required this.puntos, required this.zonas});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$puntos',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            puntos == 1 ? 'punto' : 'puntos',
+            style: const TextStyle(fontSize: 13),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            '$zonas de 9 zonas',
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+        ],
+      ),
     );
   }
 }
