@@ -221,4 +221,66 @@ void main() {
       await bloc.close();
     });
   });
+    group('cuando se puede volver a tirar', () {
+    test('no deja tirar de nuevo si hay jugada pendiente', () async {
+      final bloc = TableroBloc(azar: AzarFijo([3, 2]));
+      bloc.add(ValoresInicialesProporcionados(tableroDePrueba(Tipo.verde)));
+      await procesar();
+      bloc.add(DadosTirados());
+      await procesar();
+
+      expect(enJuego(bloc).hayJugada, true);
+      expect(enJuego(bloc).puedeTirar, false);
+
+      final emitidos = <TableroState>[];
+      final sub = bloc.stream.listen(emitidos.add);
+
+      bloc.add(DadosTirados());
+      await procesar();
+
+      expect(emitidos, isEmpty);
+
+      await sub.cancel();
+      await bloc.close();
+    });
+
+    test('deja tirar de nuevo si no hay ninguna jugada', () async {
+      // El tablero solo tiene un 2: con 5 y 6 no se puede escribir nada.
+      final bloc = TableroBloc(azar: AzarFijo([5, 6]));
+      bloc.add(ValoresInicialesProporcionados(tableroDePrueba(Tipo.verde)));
+      await procesar();
+      bloc.add(DadosTirados());
+      await procesar();
+
+      expect(enJuego(bloc).hayJugada, false);
+      expect(enJuego(bloc).puedeTirar, true);
+
+      final emitidos = <TableroState>[];
+      final sub = bloc.stream.listen(emitidos.add);
+
+      bloc.add(DadosTirados());
+      await procesar();
+
+      expect(emitidos, hasLength(1));
+
+      await sub.cancel();
+      await bloc.close();
+    });
+
+    test('despues de colocar se habilita tirar otra vez', () async {
+      final bloc = TableroBloc(azar: AzarFijo([3, 2]));
+      bloc.add(ValoresInicialesProporcionados(tableroDePrueba(Tipo.verde)));
+      await procesar();
+      bloc.add(DadosTirados());
+      await procesar();
+      bloc.add(NumeroElegido(3));
+      await procesar();
+      bloc.add(NumeroColocado(0, 1));
+      await procesar();
+
+      expect(enJuego(bloc).puedeTirar, true);
+
+      await bloc.close();
+    });
+  });
 }

@@ -48,6 +48,7 @@ class TableroEnJuego extends TableroState {
   @override
   bool get puedeAvanzar => true;
 
+  /// Dónde se puede escribir con la tirada y el número elegidos.
   List<(int, int)> get posibles {
     final tirada = dados;
     final numero = elegido;
@@ -56,6 +57,20 @@ class TableroEnJuego extends TableroState {
     }
     return tablero.celdasPosibles(numero, tirada.companeroDe(numero));
   }
+
+  /// ¿Queda alguna jugada con esta tirada, usando cualquiera de los dos dados?
+  bool get hayJugada {
+    final tirada = dados;
+    if (tirada == null) {
+      return false;
+    }
+    return tablero.celdasPosibles(tirada.primero, tirada.segundo).isNotEmpty ||
+        tablero.celdasPosibles(tirada.segundo, tirada.primero).isNotEmpty;
+  }
+
+  /// Solo se puede tirar si todavía no tiraste, o si con lo que salió no hay
+  /// forma de jugar.
+  bool get puedeTirar => dados == null || !hayJugada;
 }
 
 class TableroResuelto extends TableroState {
@@ -79,8 +94,12 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
 
     on<DadosTirados>((event, emit) {
       final actual = state;
-
+      // Sin valores iniciales no se avanza: tampoco se tira.
       if (actual is! TableroEnJuego) {
+        return;
+      }
+      // Si hay jugada pendiente, primero hay que colocar.
+      if (!actual.puedeTirar) {
         return;
       }
       emit(TableroEnJuego(actual.tablero, dados: Dados.tirar(_azar)));
