@@ -183,4 +183,30 @@ void main() {
       expect(conZona(Tipo.rojo).celdasPosibles(1, 5), hasLength(3));
     });
   });
+    group('puntaje', () {
+    test('el tablero vacio no suma nada', () {
+      expect(Tablero.nivel1Inicial().puntos, 0);
+      expect(Tablero.nivel1Inicial().zonasCompletas(), isEmpty);
+    });
+
+    test('el tablero resuelto suma las nueve zonas', () {
+      // amarilla 8, verdes 4+4, azules 7+7, moradas 6+6, rojas 6+6
+      expect(Tablero.nivel1().puntos, 54);
+      expect(Tablero.nivel1().zonasCompletas(), hasLength(9));
+    });
+
+    test('una zona a la que le falta una casilla no esta completa', () {
+      final tablero = Tablero.nivel1();
+      tablero.valores[0][2] = null; // una casilla de la zona azul 3
+      expect(tablero.zonaCompleta(3), false);
+      expect(tablero.puntos, 54 - 7);
+    });
+
+    test('una zona llena pero invalida no suma', () {
+      final tablero = Tablero.nivel1();
+      tablero.valores[0][2] = 5; // rompe la zona azul 3, que pide todos iguales
+      expect(tablero.zonaCompleta(3), true);
+      expect(tablero.puntos, 54 - 7);
+    });
+  });
 }
