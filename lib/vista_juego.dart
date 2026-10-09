@@ -12,6 +12,7 @@ class VistaJuego extends StatelessWidget {
   final Dados? dados;
   final int? elegido;
   final List<(int, int)> posibles;
+  final bool puedeTirar;
   final bool resuelto;
 
   const VistaJuego({
@@ -20,17 +21,19 @@ class VistaJuego extends StatelessWidget {
     this.dados,
     this.elegido,
     this.posibles = const [],
+    this.puedeTirar = true,
     this.resuelto = false,
   });
 
   String get _instruccion {
     if (resuelto) return '¡Tablero resuelto!';
-    if (dados == null) return 'Tirá los dados para jugar';
-    if (elegido == null) return 'Elegí cuál de los dos números vas a escribir';
+    if (dados == null) return 'Tira los dados para jugar';
+    if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
+    if (elegido == null) return 'Elige cuál de los dos números vas a escribir';
     if (posibles.isEmpty) {
-      return 'Con ese número no hay jugada: probá con el otro';
+      return 'Con ese número no hay jugada: prueba con el otro';
     }
-    return 'Tocá una casilla resaltada';
+    return 'Toca una casilla resaltada';
   }
 
   @override
@@ -119,7 +122,7 @@ class VistaJuego extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               FilledButton(
-                onPressed: resuelto
+                onPressed: (resuelto || !puedeTirar)
                     ? null
                     : () => context.read<TableroBloc>().add(DadosTirados()),
                 style: FilledButton.styleFrom(
