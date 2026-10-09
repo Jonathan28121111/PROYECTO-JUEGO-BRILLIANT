@@ -7,20 +7,19 @@ class Regla {
   final Tipo tipo;
   final String simbolo;
   final String descripcion;
-  final List<int> puntos;
 
-  const Regla(this.tipo, this.simbolo, this.descripcion, this.puntos);
+  const Regla(this.tipo, this.simbolo, this.descripcion);
 }
 
 const List<Regla> reglasIzquierda = [
-  Regla(Tipo.rojo, '≠', 'Todos distintos', [6, 4, 2]),
-  Regla(Tipo.amarillo, '≠', 'Todos distintos,\ncasillas separadas', [8, 6, 4]),
-  Regla(Tipo.azul, '=', 'Todos iguales', [7, 5, 3]),
+  Regla(Tipo.rojo, '≠', 'Todos distintos'),
+  Regla(Tipo.amarillo, '≠', 'Todos distintos,\ncasillas separadas'),
+  Regla(Tipo.azul, '=', 'Todos iguales'),
 ];
 
 const List<Regla> reglasDerecha = [
-  Regla(Tipo.morado, 'XO', 'Solo dos valores', [6, 4, 2]),
-  Regla(Tipo.verde, '?', 'Cualquier número', [4, 3, 2]),
+  Regla(Tipo.morado, 'XO', 'Solo dos valores'),
+  Regla(Tipo.verde, '?', 'Cualquier número'),
 ];
 
 class PanelReglas extends StatelessWidget {
@@ -83,7 +82,7 @@ class _TarjetaRegla extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (final punto in regla.puntos)
+            for (final punto in puntosPorTipo[regla.tipo]!)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Container(
