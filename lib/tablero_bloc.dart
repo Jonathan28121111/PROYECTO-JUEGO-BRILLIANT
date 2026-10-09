@@ -15,12 +15,17 @@ class ValoresInicialesProporcionados extends TableroEvent {
 
 class DadosTirados extends TableroEvent {}
 
+class NumeroElegido extends TableroEvent {
+  final int numero;
+
+  NumeroElegido(this.numero);
+}
+
 class NumeroColocado extends TableroEvent {
   final int fila;
   final int columna;
-  final int numero;
 
-  NumeroColocado(this.fila, this.columna, this.numero);
+  NumeroColocado(this.fila, this.columna);
 }
 
 sealed class TableroState {
@@ -36,11 +41,21 @@ class TableroSinIniciar extends TableroState {
 class TableroEnJuego extends TableroState {
   final Tablero tablero;
   final Dados? dados;
+  final int? elegido;
 
-  TableroEnJuego(this.tablero, {this.dados});
+  TableroEnJuego(this.tablero, {this.dados, this.elegido});
 
   @override
   bool get puedeAvanzar => true;
+
+  List<(int, int)> get posibles {
+    final tirada = dados;
+    final numero = elegido;
+    if (tirada == null || numero == null) {
+      return const [];
+    }
+    return tablero.celdasPosibles(numero, tirada.companeroDe(numero));
+  }
 }
 
 class TableroResuelto extends TableroState {
@@ -63,40 +78,53 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
     });
 
     on<DadosTirados>((event, emit) {
-      final estadoActual = state;
-      // Sin valores iniciales no se avanza: tampoco se tira.
-      if (estadoActual is! TableroEnJuego) {
+      final actual = state;
+
+      if (actual is! TableroEnJuego) {
         return;
       }
-      emit(TableroEnJuego(estadoActual.tablero, dados: Dados.tirar(_azar)));
+      emit(TableroEnJuego(actual.tablero, dados: Dados.tirar(_azar)));
+    });
+
+    on<NumeroElegido>((event, emit) {
+      final actual = state;
+      if (actual is! TableroEnJuego) {
+        return;
+      }
+      final dados = actual.dados;
+      if (dados == null || !dados.contiene(event.numero)) {
+        return;
+      }
+      emit(TableroEnJuego(
+        actual.tablero,
+        dados: dados,
+        elegido: event.numero,
+      ));
     });
 
     on<NumeroColocado>((event, emit) {
-      final estadoActual = state;
-      // Sin valores iniciales no se avanza: la jugada se descarta.
-      if (estadoActual is! TableroEnJuego) {
+      final actual = state;
+      if (actual is! TableroEnJuego) {
         return;
       }
 
-      final tablero = estadoActual.tablero;
-      if (tablero.valores[event.fila][event.columna] != null) {
+      final elegido = actual.elegido;
+      if (elegido == null) {
+        return;
+      }
+      if (!actual.posibles.contains((event.fila, event.columna))) {
         return;
       }
 
-      final idZona = tablero.zonasPorCelda[event.fila][event.columna];
-      if (!tablero.zona(idZona).aceptaNumero(event.numero)) {
-        return;
-      }
-
-      tablero.valores[event.fila][event.columna] = event.numero;
-      emit(_estadoSegun(tablero, estadoActual.dados));
+      actual.tablero.valores[event.fila][event.columna] = elegido;
+      emit(_estadoSegun(actual.tablero));
     });
   }
 
-  TableroState _estadoSegun(Tablero tablero, [Dados? dados]) {
+  TableroState _estadoSegun(Tablero tablero) {
     if (tablero.estaCompleto() && tablero.esValido()) {
       return TableroResuelto(tablero);
     }
-    return TableroEnJuego(tablero, dados: dados);
+    return TableroEnJuego(tablero);
   }
 }
