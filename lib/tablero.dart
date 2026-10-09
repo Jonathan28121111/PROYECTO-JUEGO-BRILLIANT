@@ -84,6 +84,32 @@ class Tablero {
     return ids.map(zona).toList();
   }
 
+ 
+  bool tieneVecinoCon(int fila, int columna, int numero) {
+    const vecinas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+    for (final (desplazaFila, desplazaColumna) in vecinas) {
+      final f = fila + desplazaFila;
+      final c = columna + desplazaColumna;
+      if (f < 0 || f >= valores.length) continue;
+      if (c < 0 || c >= valores[f].length) continue;
+      if (valores[f][c] == numero) return true;
+    }
+    return false;
+  }
+
+  List<(int, int)> celdasPosibles(int numero, int companero) {
+    final posibles = <(int, int)>[];
+    for (var fila = 0; fila < valores.length; fila++) {
+      for (var columna = 0; columna < valores[fila].length; columna++) {
+        if (valores[fila][columna] != null) continue;
+        if (!tieneVecinoCon(fila, columna, companero)) continue;
+        if (!zona(zonasPorCelda[fila][columna]).aceptaNumero(numero)) continue;
+        posibles.add((fila, columna));
+      }
+    }
+    return posibles;
+  }
+
   bool estaCompleto() {
     for (final fila in valores) {
       for (final valor in fila) {

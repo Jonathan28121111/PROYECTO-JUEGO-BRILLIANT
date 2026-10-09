@@ -27,4 +27,30 @@ void main() {
     };
     expect(resultados.length, greaterThan(1));
   });
+    group('companeroDe', () {
+    test('devuelve el otro valor de la tirada', () {
+      const dados = Dados(2, 5);
+      expect(dados.companeroDe(2), 5);
+      expect(dados.companeroDe(5), 2);
+    });
+
+    test('con los dos dados iguales el companero es el mismo numero', () {
+      const dados = Dados(4, 4);
+      expect(dados.companeroDe(4), 4);
+    });
+
+    test('lanza un error si el numero no salio', () {
+      const dados = Dados(2, 5);
+      expect(() => dados.companeroDe(3), throwsArgumentError);
+    });
+  });
+
+  group('contiene', () {
+    test('reconoce los dos valores de la tirada', () {
+      const dados = Dados(2, 5);
+      expect(dados.contiene(2), true);
+      expect(dados.contiene(5), true);
+      expect(dados.contiene(4), false);
+    });
+  });
 }
