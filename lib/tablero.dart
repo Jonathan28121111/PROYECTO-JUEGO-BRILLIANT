@@ -110,6 +110,25 @@ class Tablero {
     return posibles;
   }
 
+  bool zonaCompleta(int id) {
+    for (var fila = 0; fila < zonasPorCelda.length; fila++) {
+      for (var columna = 0; columna < zonasPorCelda[fila].length; columna++) {
+        if (zonasPorCelda[fila][columna] == id &&
+            valores[fila][columna] == null) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  List<Zona> zonasCompletas() =>
+      zonas().where((z) => zonaCompleta(z.id) && z.esValida()).toList();
+
+
+  int get puntos =>
+      zonasCompletas().fold(0, (suma, zona) => suma + zona.puntos.first);
+
   bool estaCompleto() {
     for (final fila in valores) {
       for (final valor in fila) {
