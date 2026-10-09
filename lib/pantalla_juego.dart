@@ -22,6 +22,7 @@ class PantallaJuego extends StatelessWidget {
                 dados: juego.dados,
                 elegido: juego.elegido,
                 posibles: juego.posibles,
+                puedeTirar: juego.puedeTirar,
               ),
             TableroResuelto(:final tablero) =>
               VistaJuego(tablero: tablero, resuelto: true),

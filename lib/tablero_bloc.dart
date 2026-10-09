@@ -48,6 +48,7 @@ class TableroEnJuego extends TableroState {
   @override
   bool get puedeAvanzar => true;
 
+
   List<(int, int)> get posibles {
     final tirada = dados;
     final numero = elegido;
@@ -56,6 +57,17 @@ class TableroEnJuego extends TableroState {
     }
     return tablero.celdasPosibles(numero, tirada.companeroDe(numero));
   }
+
+  bool get hayJugada {
+    final tirada = dados;
+    if (tirada == null) {
+      return false;
+    }
+    return tablero.celdasPosibles(tirada.primero, tirada.segundo).isNotEmpty ||
+        tablero.celdasPosibles(tirada.segundo, tirada.primero).isNotEmpty;
+  }
+
+  bool get puedeTirar => dados == null || !hayJugada;
 }
 
 class TableroResuelto extends TableroState {
@@ -79,8 +91,12 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
 
     on<DadosTirados>((event, emit) {
       final actual = state;
-
+    
       if (actual is! TableroEnJuego) {
+        return;
+      }
+    
+      if (!actual.puedeTirar) {
         return;
       }
       emit(TableroEnJuego(actual.tablero, dados: Dados.tirar(_azar)));
