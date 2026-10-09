@@ -117,4 +117,70 @@ void main() {
       expect(tablero.esValido(), false);
     });
   });
+
+    group('tieneVecinoCon', () {
+    Tablero cruz() => Tablero(
+          [
+            [1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],
+          ],
+          {1: Tipo.verde},
+          [
+            [6, 5, null],
+            [3, null, 4],
+            [null, 2, null],
+          ],
+        );
+
+    test('encuentra el numero en las cuatro direcciones', () {
+      final tablero = cruz();
+      expect(tablero.tieneVecinoCon(1, 1, 5), true);
+      expect(tablero.tieneVecinoCon(1, 1, 2), true);
+      expect(tablero.tieneVecinoCon(1, 1, 3), true);
+      expect(tablero.tieneVecinoCon(1, 1, 4), true);
+    });
+
+    test('no cuenta las diagonales', () {
+      expect(cruz().tieneVecinoCon(1, 1, 6), false);
+    });
+
+    test('no se pasa del borde del tablero', () {
+      expect(cruz().tieneVecinoCon(0, 0, 9), false);
+    });
+  });
+
+  group('celdasPosibles', () {
+    Tablero conZona(Tipo tipo) => Tablero(
+          [
+            [1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],
+          ],
+          {1: tipo},
+          [
+            [null, 5, null],
+            [3, null, 4],
+            [null, 2, null],
+          ],
+        );
+
+    test('solo las vacias que tocan al companero', () {
+      expect(conZona(Tipo.verde).celdasPosibles(1, 5), [
+        (0, 0),
+        (0, 2),
+        (1, 1),
+      ]);
+    });
+
+    test('ninguna si el companero no esta en el tablero', () {
+      expect(conZona(Tipo.verde).celdasPosibles(1, 6), isEmpty);
+    });
+
+    test('descarta las que romperian la regla de la zona', () {
+      // La zona roja ya tiene un 3, así que otro 3 no entra en ningún lado.
+      expect(conZona(Tipo.rojo).celdasPosibles(3, 5), isEmpty);
+      expect(conZona(Tipo.rojo).celdasPosibles(1, 5), hasLength(3));
+    });
+  });
 }
