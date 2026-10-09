@@ -27,13 +27,13 @@ class VistaJuego extends StatelessWidget {
 
   String get _instruccion {
     if (resuelto) return '¡Tablero resuelto!';
-    if (dados == null) return 'Tirá los dados para jugar';
-    if (puedeTirar) return 'No hay ninguna jugada: volvé a tirar';
-    if (elegido == null) return 'Elegí cuál de los dos números vas a escribir';
+    if (dados == null) return 'Tira los dados para jugar';
+    if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
+    if (elegido == null) return 'Elige cuál de los dos números vas a escribir';
     if (posibles.isEmpty) {
-      return 'Con ese número no hay jugada: probá con el otro';
+      return 'Con ese número no hay jugada: prueba con el otro';
     }
-    return 'Tocá una casilla resaltada';
+    return 'Toca una casilla resaltada';
   }
 
   @override
