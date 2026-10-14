@@ -75,7 +75,7 @@ class VistaJuego extends StatelessWidget {
                           numeros: numeros,
                           arrastrando: false,
                           posibles: posibles,
-                          alSoltar: (_, __) {},
+                          alSoltar: (_, _) {},
                           alQuitar: (_) {},
                           alTocar: (celda) => context
                               .read<TableroBloc>()
