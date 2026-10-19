@@ -6,8 +6,6 @@ import 'package:pruebas_numeros/tipo_zona.dart';
 void main() {
   group('colorDe', () {
     test('cada color del juego tiene su color de pantalla', () {
-      // El switch de colorDe es exhaustivo, así que si agregas un Tipo el
-      // código no compila. Esta prueba cuida lo otro: que no se repitan.
       final colores = Tipo.values.map(colorDe).toSet();
       expect(colores, hasLength(Tipo.values.length));
     });
@@ -42,6 +40,28 @@ void main() {
           anyOf(Colors.white, Colors.black87),
           reason: '$tipo',
         );
+      }
+    });
+
+    test('para cualquier color posible devuelve uno de los dos', () {
+      for (var rojo = 0; rojo < 256; rojo += 51) {
+        for (var verde = 0; verde < 256; verde += 51) {
+          for (var azul = 0; azul < 256; azul += 51) {
+            final fondo = Color.fromARGB(255, rojo, verde, azul);
+            expect(
+              colorTextoSobre(fondo),
+              anyOf(Colors.white, Colors.black87),
+              reason: 'fallo con $fondo',
+            );
+          }
+        }
+      }
+    });
+
+    test('el texto nunca sale del mismo color que el fondo', () {
+      for (final tipo in Tipo.values) {
+        expect(colorTextoSobre(colorDe(tipo)), isNot(colorDe(tipo)),
+            reason: '$tipo quedaria ilegible');
       }
     });
   });
