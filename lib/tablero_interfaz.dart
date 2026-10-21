@@ -47,7 +47,9 @@ class TableroInterfaz extends StatelessWidget {
                         columna++)
                       Expanded(
                         child: _Celda(
-                          tipo: tablero.tipoDe(fila, columna),
+                          tipo: tablero.esHueco(fila, columna)
+                              ? null
+                              : tablero.tipoDe(fila, columna),
                           esAncla: anclas.contains((fila, columna)),
                           numero: numeros[(fila, columna)],
                           llamando: arrastrando &&
@@ -71,7 +73,7 @@ class TableroInterfaz extends StatelessWidget {
 }
 
 class _Celda extends StatelessWidget {
-  final Tipo tipo;
+  final Tipo? tipo;
   final bool esAncla;
   final int? numero;
   final bool llamando;
@@ -93,7 +95,17 @@ class _Celda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorDe(tipo);
+    final zona = tipo;
+    if (zona == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: colorHueco,
+          border: Border.all(color: Colors.black26, width: 1),
+        ),
+      );
+    }
+
+    final color = colorDe(zona);
     final colorTexto = colorTextoSobre(color);
 
     final celda = Container(
