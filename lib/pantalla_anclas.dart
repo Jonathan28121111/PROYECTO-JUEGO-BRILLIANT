@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'nivel.dart';
 import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
@@ -11,18 +12,20 @@ const Color verdePastelClaro = Color(0xFFEAF7EA);
 const Color verdeTexto = Color(0xFF1B3D1E);
 
 class PantallaAnclas extends StatefulWidget {
-  const PantallaAnclas({super.key});
+  final Nivel nivel;
+
+  const PantallaAnclas({super.key, this.nivel = nivel1});
 
   @override
   State<PantallaAnclas> createState() => _PantallaAnclasState();
 }
 
 class _PantallaAnclasState extends State<PantallaAnclas> {
-  final Tablero tablero = Tablero.nivel1Inicial();
+  late final Tablero tablero = Tablero.deNivel(widget.nivel);
   final Map<(int, int), int> numeros = {};
   bool arrastrando = false;
 
-  int get total => Tablero.anclasNivel1.length;
+  int get total => widget.nivel.anclas.length;
   bool get completo => numeros.length == total;
 
   void _soltar((int, int) celda, int numero) {
@@ -37,7 +40,7 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
   }
 
   Tablero _tableroConAnclas() {
-    final conAnclas = Tablero.nivel1Inicial();
+    final conAnclas = Tablero.deNivel(widget.nivel);
     numeros.forEach((celda, numero) {
       conAnclas.valores[celda.$1][celda.$2] = numero;
     });
@@ -55,15 +58,18 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
           Expanded(
             child: Row(
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 150,
-                  child: PanelReglas(reglas: reglasIzquierda),
+                  child: PanelReglas(
+                    reglas: reglasDe(widget.nivel).$1,
+                    puntos: widget.nivel.puntos,
+                  ),
                 ),
                 Expanded(
                   child: Center(
                     child: TableroInterfaz(
                       tablero: tablero,
-                      anclas: Tablero.anclasNivel1,
+                      anclas: widget.nivel.anclas,
                       numeros: numeros,
                       arrastrando: arrastrando,
                       alSoltar: _soltar,
@@ -71,9 +77,12 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                     ),
                   ),
                 ),
-                const SizedBox(
+                SizedBox(
                   width: 150,
-                  child: PanelReglas(reglas: reglasDerecha),
+                  child: PanelReglas(
+                    reglas: reglasDe(widget.nivel).$2,
+                    puntos: widget.nivel.puntos,
+                  ),
                 ),
               ],
             ),

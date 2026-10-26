@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'dados.dart';
+import 'nivel.dart';
 import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
@@ -14,6 +15,7 @@ class VistaJuego extends StatelessWidget {
   final List<(int, int)> posibles;
   final bool puedeTirar;
   final bool resuelto;
+  final Nivel nivel;
 
   const VistaJuego({
     super.key,
@@ -23,6 +25,7 @@ class VistaJuego extends StatelessWidget {
     this.posibles = const [],
     this.puedeTirar = true,
     this.resuelto = false,
+    this.nivel = nivel1,
   });
 
   String get _instruccion {
@@ -63,15 +66,18 @@ class VistaJuego extends StatelessWidget {
                 height: altoTablero,
                 child: Row(
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 140,
-                      child: PanelReglas(reglas: reglasIzquierda),
+                      child: PanelReglas(
+                    reglas: reglasDe(nivel).$1,
+                    puntos: nivel.puntos,
+                  ),
                     ),
                     Expanded(
                       child: Center(
                         child: TableroInterfaz(
                           tablero: tablero,
-                          anclas: Tablero.anclasNivel1,
+                          anclas: nivel.anclas,
                           numeros: numeros,
                           arrastrando: false,
                           posibles: posibles,
@@ -83,9 +89,12 @@ class VistaJuego extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(
+                    SizedBox(
                       width: 140,
-                      child: PanelReglas(reglas: reglasDerecha),
+                      child: PanelReglas(
+                    reglas: reglasDe(nivel).$2,
+                    puntos: nivel.puntos,
+                  ),
                     ),
                   ],
                 ),
