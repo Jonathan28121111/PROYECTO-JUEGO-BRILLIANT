@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'dados.dart';
+import 'nivel.dart';
 import 'tablero.dart';
 
 sealed class TableroEvent {}
@@ -11,6 +12,12 @@ class ValoresInicialesProporcionados extends TableroEvent {
   final Tablero tablero;
 
   ValoresInicialesProporcionados(this.tablero);
+}
+
+class NivelElegido extends TableroEvent {
+  final Nivel nivel;
+
+  NivelElegido(this.nivel);
 }
 
 class DadosTirados extends TableroEvent {}
@@ -35,15 +42,18 @@ sealed class TableroState {
 }
 
 class TableroSinIniciar extends TableroState {
-  const TableroSinIniciar();
+  final Nivel? nivel;
+
+  const TableroSinIniciar([this.nivel]);
 }
 
 class TableroEnJuego extends TableroState {
   final Tablero tablero;
   final Dados? dados;
   final int? elegido;
+  final Nivel nivel;
 
-  TableroEnJuego(this.tablero, {this.dados, this.elegido});
+  TableroEnJuego(this.tablero, {this.dados, this.elegido, this.nivel = nivel1});
 
   @override
   bool get puedeAvanzar => true;
@@ -71,8 +81,9 @@ class TableroEnJuego extends TableroState {
 
 class TableroResuelto extends TableroState {
   final Tablero tablero;
+  final Nivel nivel;
 
-  TableroResuelto(this.tablero);
+  TableroResuelto(this.tablero, {this.nivel = nivel1});
 
   @override
   bool get puedeAvanzar => true;
@@ -80,10 +91,19 @@ class TableroResuelto extends TableroState {
 
 class TableroBloc extends Bloc<TableroEvent, TableroState> {
   final Random _azar;
+  Nivel _nivel = nivel1;
 
   TableroBloc({Random? azar})
       : _azar = azar ?? Random(),
         super(const TableroSinIniciar()) {
+    on<NivelElegido>((event, emit) {
+      if (state is! TableroSinIniciar) {
+        return;
+      }
+      _nivel = event.nivel;
+      emit(TableroSinIniciar(event.nivel));
+    });
+
     on<ValoresInicialesProporcionados>((event, emit) {
       emit(_estadoSegun(event.tablero));
     });
@@ -96,7 +116,11 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
       if (!actual.puedeTirar) {
         return;
       }
-      emit(TableroEnJuego(actual.tablero, dados: Dados.tirar(_azar)));
+      emit(TableroEnJuego(
+        actual.tablero,
+        dados: Dados.tirar(_azar),
+        nivel: _nivel,
+      ));
     });
 
     on<NumeroElegido>((event, emit) {
@@ -112,6 +136,7 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
         actual.tablero,
         dados: dados,
         elegido: event.numero,
+        nivel: _nivel,
       ));
     });
 
@@ -136,8 +161,8 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
 
   TableroState _estadoSegun(Tablero tablero) {
     if (tablero.estaCompleto() && tablero.esValido()) {
-      return TableroResuelto(tablero);
+      return TableroResuelto(tablero, nivel: _nivel);
     }
-    return TableroEnJuego(tablero);
+    return TableroEnJuego(tablero, nivel: _nivel);
   }
 }
