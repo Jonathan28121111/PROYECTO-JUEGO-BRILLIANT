@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'colores.dart';
+import 'nivel.dart';
 import 'tipo_zona.dart';
 
 class Regla {
@@ -10,6 +11,17 @@ class Regla {
 
   const Regla(this.tipo, this.simbolo, this.descripcion);
 }
+
+const Map<Tipo, Regla> reglaPorTipo = {
+  Tipo.rojo: Regla(Tipo.rojo, '≠', 'Todos distintos'),
+  Tipo.amarillo: Regla(Tipo.amarillo, '≠', 'Todos distintos'),
+  Tipo.azul: Regla(Tipo.azul, '=', 'Todos iguales'),
+  Tipo.morado: Regla(Tipo.morado, 'XO', 'Solo dos valores'),
+  Tipo.verde: Regla(Tipo.verde, '?', 'Cualquier número'),
+  Tipo.blanco: Regla(Tipo.blanco, '=', 'Todos iguales'),
+  Tipo.naranja1a3: Regla(Tipo.naranja1a3, '1-3', 'Solo del 1 al 3'),
+  Tipo.naranja4a6: Regla(Tipo.naranja4a6, '4-6', 'Solo del 4 al 6'),
+};
 
 const List<Regla> reglasIzquierda = [
   Regla(Tipo.rojo, '≠', 'Todos distintos'),
@@ -22,10 +34,22 @@ const List<Regla> reglasDerecha = [
   Regla(Tipo.verde, '?', 'Cualquier número'),
 ];
 
+(List<Regla>, List<Regla>) reglasDe(Nivel nivel) {
+  final reglas = [for (final tipo in nivel.tiposUsados) reglaPorTipo[tipo]!];
+  final corte = (reglas.length / 2).ceil();
+  return (reglas.sublist(0, corte), reglas.sublist(corte));
+}
+
 class PanelReglas extends StatelessWidget {
   final List<Regla> reglas;
 
-  const PanelReglas({super.key, required this.reglas});
+  final Map<Tipo, List<int>> puntos;
+
+  const PanelReglas({
+    super.key,
+    required this.reglas,
+    this.puntos = const {},
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +59,10 @@ class PanelReglas extends StatelessWidget {
           for (final regla in reglas)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: _TarjetaRegla(regla: regla),
+              child: _TarjetaRegla(
+                regla: regla,
+                puntos: puntos[regla.tipo] ?? puntosPorTipo[regla.tipo]!,
+              ),
             ),
         ],
       ),
@@ -45,8 +72,9 @@ class PanelReglas extends StatelessWidget {
 
 class _TarjetaRegla extends StatelessWidget {
   final Regla regla;
+  final List<int> puntos;
 
-  const _TarjetaRegla({required this.regla});
+  const _TarjetaRegla({required this.regla, required this.puntos});
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +110,7 @@ class _TarjetaRegla extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (final punto in puntosPorTipo[regla.tipo]!)
+            for (final punto in puntos)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Container(
