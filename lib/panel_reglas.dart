@@ -12,6 +12,7 @@ class Regla {
   const Regla(this.tipo, this.simbolo, this.descripcion);
 }
 
+/// La tarjeta que le toca a cada tipo de zona.
 const Map<Tipo, Regla> reglaPorTipo = {
   Tipo.rojo: Regla(Tipo.rojo, '≠', 'Todos distintos'),
   Tipo.amarillo: Regla(Tipo.amarillo, '≠', 'Todos distintos'),
@@ -34,6 +35,7 @@ const List<Regla> reglasDerecha = [
   Regla(Tipo.verde, '?', 'Cualquier número'),
 ];
 
+/// Las reglas que aplican en un nivel, repartidas entre los dos paneles.
 (List<Regla>, List<Regla>) reglasDe(Nivel nivel) {
   final reglas = [for (final tipo in nivel.tiposUsados) reglaPorTipo[tipo]!];
   final corte = (reglas.length / 2).ceil();
@@ -43,6 +45,7 @@ const List<Regla> reglasDerecha = [
 class PanelReglas extends StatelessWidget {
   final List<Regla> reglas;
 
+  /// Los puntajes del nivel. Si no vienen se usan los de `puntosPorTipo`.
   final Map<Tipo, List<int>> puntos;
 
   const PanelReglas({
@@ -53,15 +56,20 @@ class PanelReglas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // El nivel 4 usa siete tipos de zona y no caben cuatro tarjetas grandes
+    // en la altura del tablero.
+    final compacto = reglas.length >= 4;
+
     return SingleChildScrollView(
       child: Column(
         children: [
           for (final regla in reglas)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: compacto ? 4 : 8),
               child: _TarjetaRegla(
                 regla: regla,
                 puntos: puntos[regla.tipo] ?? puntosPorTipo[regla.tipo]!,
+                compacto: compacto,
               ),
             ),
         ],
@@ -73,18 +81,25 @@ class PanelReglas extends StatelessWidget {
 class _TarjetaRegla extends StatelessWidget {
   final Regla regla;
   final List<int> puntos;
+  final bool compacto;
 
-  const _TarjetaRegla({required this.regla, required this.puntos});
+  const _TarjetaRegla({
+    required this.regla,
+    required this.puntos,
+    this.compacto = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final color = colorDe(regla.tipo);
+    final lado = compacto ? 36.0 : 46.0;
+    final ladoPunto = compacto ? 17.0 : 20.0;
 
     return Column(
       children: [
         Container(
-          width: 46,
-          height: 46,
+          width: lado,
+          height: lado,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: color,
@@ -94,19 +109,21 @@ class _TarjetaRegla extends StatelessWidget {
           child: Text(
             regla.simbolo,
             style: TextStyle(
-              fontSize: regla.simbolo.length > 1 ? 17 : 24,
+              fontSize: regla.simbolo.length > 1
+                  ? (compacto ? 13 : 17)
+                  : (compacto ? 19 : 24),
               fontWeight: FontWeight.bold,
               color: colorTextoSobre(color),
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: compacto ? 2 : 4),
         Text(
           regla.descripcion,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 10, height: 1.2),
+          style: TextStyle(fontSize: compacto ? 9 : 10, height: 1.15),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: compacto ? 2 : 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -114,8 +131,8 @@ class _TarjetaRegla extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 child: Container(
-                  width: 20,
-                  height: 20,
+                  width: ladoPunto,
+                  height: ladoPunto,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.black38, width: 1.5),
@@ -123,8 +140,8 @@ class _TarjetaRegla extends StatelessWidget {
                   ),
                   child: Text(
                     '$punto',
-                    style: const TextStyle(
-                      fontSize: 11,
+                    style: TextStyle(
+                      fontSize: compacto ? 10 : 11,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),

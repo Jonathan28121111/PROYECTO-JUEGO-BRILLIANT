@@ -1,204 +1,156 @@
 import 'package:flutter/material.dart';
 
 import 'colores.dart';
-import 'tablero.dart';
+import 'nivel.dart';
 import 'tipo_zona.dart';
 
-class TableroInterfaz extends StatelessWidget {
-  final Tablero tablero;
-  final List<(int, int)> anclas;
-  final Map<(int, int), int> numeros;
-  final bool arrastrando;
-  final List<(int, int)> posibles;
-  final void Function((int, int) celda, int numero) alSoltar;
-  final void Function((int, int) celda) alQuitar;
-  final void Function((int, int) celda)? alTocar;
+class Regla {
+  final Tipo tipo;
+  final String simbolo;
+  final String descripcion;
 
-  const TableroInterfaz({
+  const Regla(this.tipo, this.simbolo, this.descripcion);
+}
+
+/// La tarjeta que le toca a cada tipo de zona.
+const Map<Tipo, Regla> reglaPorTipo = {
+  Tipo.rojo: Regla(Tipo.rojo, '≠', 'Todos distintos'),
+  Tipo.amarillo: Regla(Tipo.amarillo, '≠', 'Todos distintos'),
+  Tipo.azul: Regla(Tipo.azul, '=', 'Todos iguales'),
+  Tipo.morado: Regla(Tipo.morado, 'XO', 'Solo dos valores'),
+  Tipo.verde: Regla(Tipo.verde, '?', 'Cualquier número'),
+  Tipo.blanco: Regla(Tipo.blanco, '=', 'Todos iguales'),
+  Tipo.naranja1a3: Regla(Tipo.naranja1a3, '1-3', 'Solo del 1 al 3'),
+  Tipo.naranja4a6: Regla(Tipo.naranja4a6, '4-6', 'Solo del 4 al 6'),
+};
+
+const List<Regla> reglasIzquierda = [
+  Regla(Tipo.rojo, '≠', 'Todos distintos'),
+  Regla(Tipo.amarillo, '≠', 'Todos distintos,\ncasillas separadas'),
+  Regla(Tipo.azul, '=', 'Todos iguales'),
+];
+
+const List<Regla> reglasDerecha = [
+  Regla(Tipo.morado, 'XO', 'Solo dos valores'),
+  Regla(Tipo.verde, '?', 'Cualquier número'),
+];
+
+/// Las reglas que aplican en un nivel, repartidas entre los dos paneles.
+(List<Regla>, List<Regla>) reglasDe(Nivel nivel) {
+  final reglas = [for (final tipo in nivel.tiposUsados) reglaPorTipo[tipo]!];
+  final corte = (reglas.length / 2).ceil();
+  return (reglas.sublist(0, corte), reglas.sublist(corte));
+}
+
+class PanelReglas extends StatelessWidget {
+  final List<Regla> reglas;
+
+  /// Los puntajes del nivel. Si no vienen se usan los de `puntosPorTipo`.
+  final Map<Tipo, List<int>> puntos;
+
+  const PanelReglas({
     super.key,
-    required this.tablero,
-    required this.anclas,
-    required this.numeros,
-    required this.arrastrando,
-    required this.alSoltar,
-    required this.alQuitar,
-    this.posibles = const [],
-    this.alTocar,
+    required this.reglas,
+    this.puntos = const {},
   });
 
   @override
   Widget build(BuildContext context) {
-    final tocar = alTocar;
+    // El nivel 4 usa siete tipos de zona y no caben cuatro tarjetas grandes
+    // en la altura del tablero.
+    final compacto = reglas.length >= 4;
 
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black, width: 3),
-        ),
-        child: Column(
-          children: [
-            for (var fila = 0; fila < tablero.zonasPorCelda.length; fila++)
-              Expanded(
-                child: Row(
-                  children: [
-                    for (var columna = 0;
-                        columna < tablero.zonasPorCelda[fila].length;
-                        columna++)
-                      Expanded(
-                        child: _Celda(
-                          tipo: tablero.esHueco(fila, columna)
-                              ? null
-                              : tablero.tipoDe(fila, columna),
-                          esAncla: anclas.contains((fila, columna)),
-                          numero: numeros[(fila, columna)],
-                          llamando: arrastrando &&
-                              anclas.contains((fila, columna)) &&
-                              numeros[(fila, columna)] == null,
-                          esPosible: posibles.contains((fila, columna)),
-                          alSoltar: (n) => alSoltar((fila, columna), n),
-                          alQuitar: () => alQuitar((fila, columna)),
-                          alTocar:
-                              tocar == null ? null : () => tocar((fila, columna)),
-                        ),
-                      ),
-                  ],
-                ),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          for (final regla in reglas)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: compacto ? 4 : 8),
+              child: _TarjetaRegla(
+                regla: regla,
+                puntos: puntos[regla.tipo] ?? puntosPorTipo[regla.tipo]!,
+                compacto: compacto,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _Celda extends StatelessWidget {
-  final Tipo? tipo;
-  final bool esAncla;
-  final int? numero;
-  final bool llamando;
-  final bool esPosible;
-  final void Function(int) alSoltar;
-  final VoidCallback alQuitar;
-  final VoidCallback? alTocar;
+class _TarjetaRegla extends StatelessWidget {
+  final Regla regla;
+  final List<int> puntos;
+  final bool compacto;
 
-  const _Celda({
-    required this.tipo,
-    required this.esAncla,
-    required this.numero,
-    required this.llamando,
-    required this.esPosible,
-    required this.alSoltar,
-    required this.alQuitar,
-    required this.alTocar,
+  const _TarjetaRegla({
+    required this.regla,
+    required this.puntos,
+    this.compacto = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final zona = tipo;
-    if (zona == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: colorHueco,
-          border: Border.all(color: Colors.black26, width: 1),
+    final color = colorDe(regla.tipo);
+    final lado = compacto ? 36.0 : 46.0;
+    final ladoPunto = compacto ? 17.0 : 20.0;
+
+    return Column(
+      children: [
+        Container(
+          width: lado,
+          height: lado,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color,
+            border: Border.all(color: Colors.black, width: 2),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Text(
+            regla.simbolo,
+            style: TextStyle(
+              fontSize: regla.simbolo.length > 1
+                  ? (compacto ? 13 : 17)
+                  : (compacto ? 19 : 24),
+              fontWeight: FontWeight.bold,
+              color: colorTextoSobre(color),
+            ),
+          ),
         ),
-      );
-    }
-
-    final color = colorDe(zona);
-    final colorTexto = colorTextoSobre(color);
-
-    final celda = Container(
-      decoration: BoxDecoration(
-        color: color,
-        border: Border.all(color: Colors.black, width: 1),
-      ),
-      child: LayoutBuilder(
-        builder: (context, r) => Stack(
+        SizedBox(height: compacto ? 2 : 4),
+        Text(
+          regla.descripcion,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: compacto ? 9 : 10, height: 1.15),
+        ),
+        SizedBox(height: compacto ? 2 : 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (esAncla)
+            for (final punto in puntos)
               Padding(
-                padding: EdgeInsets.all(r.maxWidth * 0.06),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: AnimatedScale(
-                    scale: llamando ? 1.6 : 1.0,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOut,
-                    child: Icon(
-                      Icons.star,
-                      size: r.maxWidth * 0.28,
-                      color: colorTexto,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Container(
+                  width: ladoPunto,
+                  height: ladoPunto,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black38, width: 1.5),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    '$punto',
+                    style: TextStyle(
+                      fontSize: compacto ? 10 : 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
                 ),
               ),
-            if (numero != null)
-              Center(
-                child: Text(
-                  '$numero',
-                  style: TextStyle(
-                    fontSize: r.maxWidth * 0.5,
-                    fontWeight: FontWeight.bold,
-                    color: colorTexto,
-                  ),
-                ),
-              ),
           ],
         ),
-      ),
+      ],
     );
-
-    Widget contenido = celda;
-
-    if (esAncla) {
-      contenido = DragTarget<int>(
-        onAcceptWithDetails: (detalles) => alSoltar(detalles.data),
-        builder: (context, candidatos, _) => Stack(
-          fit: StackFit.expand,
-          children: [
-            celda,
-            IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: candidatos.isNotEmpty
-                    ? 0.45
-                    : llamando
-                        ? 0.15
-                        : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Container(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (esPosible) {
-      contenido = Stack(
-        fit: StackFit.expand,
-        children: [
-          contenido,
-          IgnorePointer(
-            child: Container(
-              margin: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: colorTexto.withAlpha(40),
-                border: Border.all(color: colorTexto, width: 3),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    final tocar =
-        esPosible ? alTocar : (numero != null && esAncla ? alQuitar : null);
-    if (tocar == null) {
-      return contenido;
-    }
-
-    return GestureDetector(onTap: tocar, child: contenido);
   }
 }
