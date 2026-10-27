@@ -14,6 +14,8 @@ class TableroInterfaz extends StatelessWidget {
   final void Function((int, int) celda) alQuitar;
   final void Function((int, int) celda)? alTocar;
 
+  final bool Function((int, int) celda, int numero)? aceptaFicha;
+
   const TableroInterfaz({
     super.key,
     required this.tablero,
@@ -24,11 +26,13 @@ class TableroInterfaz extends StatelessWidget {
     required this.alQuitar,
     this.posibles = const [],
     this.alTocar,
+    this.aceptaFicha,
   });
 
   @override
   Widget build(BuildContext context) {
     final tocar = alTocar;
+    final acepta = aceptaFicha;
 
     return AspectRatio(
       aspectRatio: 1,
@@ -47,7 +51,9 @@ class TableroInterfaz extends StatelessWidget {
                         columna++)
                       Expanded(
                         child: _Celda(
-                          tipo: tablero.tipoDe(fila, columna),
+                          tipo: tablero.esHueco(fila, columna)
+                              ? null
+                              : tablero.tipoDe(fila, columna),
                           esAncla: anclas.contains((fila, columna)),
                           numero: numeros[(fila, columna)],
                           llamando: arrastrando &&
@@ -58,6 +64,9 @@ class TableroInterfaz extends StatelessWidget {
                           alQuitar: () => alQuitar((fila, columna)),
                           alTocar:
                               tocar == null ? null : () => tocar((fila, columna)),
+                          aceptaFicha: acepta == null
+                              ? null
+                              : (n) => acepta((fila, columna), n),
                         ),
                       ),
                   ],
@@ -71,7 +80,7 @@ class TableroInterfaz extends StatelessWidget {
 }
 
 class _Celda extends StatelessWidget {
-  final Tipo tipo;
+  final Tipo? tipo;
   final bool esAncla;
   final int? numero;
   final bool llamando;
@@ -79,6 +88,7 @@ class _Celda extends StatelessWidget {
   final void Function(int) alSoltar;
   final VoidCallback alQuitar;
   final VoidCallback? alTocar;
+  final bool Function(int)? aceptaFicha;
 
   const _Celda({
     required this.tipo,
@@ -89,11 +99,22 @@ class _Celda extends StatelessWidget {
     required this.alSoltar,
     required this.alQuitar,
     required this.alTocar,
+    this.aceptaFicha,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = colorDe(tipo);
+    final zona = tipo;
+    if (zona == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: colorHueco,
+          border: Border.all(color: Colors.black26, width: 1),
+        ),
+      );
+    }
+
+    final color = colorDe(zona);
     final colorTexto = colorTextoSobre(color);
 
     final celda = Container(
@@ -141,6 +162,8 @@ class _Celda extends StatelessWidget {
 
     if (esAncla) {
       contenido = DragTarget<int>(
+        onWillAcceptWithDetails: (detalles) =>
+            aceptaFicha?.call(detalles.data) ?? true,
         onAcceptWithDetails: (detalles) => alSoltar(detalles.data),
         builder: (context, candidatos, _) => Stack(
           fit: StackFit.expand,

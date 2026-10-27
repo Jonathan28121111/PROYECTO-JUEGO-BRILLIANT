@@ -1,41 +1,46 @@
+import 'nivel.dart';
 import 'tipo_zona.dart';
+
+const int hueco = 0;
 
 class Tablero {
   final List<List<int>> zonasPorCelda;
   final Map<int, Tipo> coloresPorZona;
   final List<List<int?>> valores;
 
-  Tablero(this.zonasPorCelda, this.coloresPorZona, this.valores);
+  final Map<Tipo, List<int>> puntosPorZona;
+
+  Tablero(
+    this.zonasPorCelda,
+    this.coloresPorZona,
+    this.valores, {
+    this.puntosPorZona = const {},
+  });
 
   static const List<(int, int)> anclasNivel1 = [
     (0, 2), (1, 5), (3, 1), (3, 4), (5, 2), (6, 4),
   ];
+
+  factory Tablero.deNivel(Nivel nivel) {
+    return Tablero(
+      nivel.zonasPorCelda,
+      nivel.coloresPorZona,
+      <List<int?>>[
+        for (final fila in nivel.zonasPorCelda) <int?>[for (final _ in fila) null],
+      ],
+      puntosPorZona: nivel.puntos,
+    );
+  }
+
+  bool esHueco(int fila, int columna) => zonasPorCelda[fila][columna] == hueco;
 
   Tipo tipoDe(int fila, int columna) =>
       coloresPorZona[zonasPorCelda[fila][columna]]!;
 
   factory Tablero.nivel1() {
     return Tablero(
-      [
-        [1, 2, 3, 4, 4, 4, 1],
-        [2, 2, 3, 3, 4, 4, 6],
-        [2, 7, 7, 3, 4, 6, 6],
-        [2, 7, 8, 1, 6, 6, 6],
-        [2, 7, 8, 8, 10, 10, 11],
-        [7, 7, 8, 10, 10, 11, 11],
-        [1, 8, 8, 10, 10, 11, 1],
-      ],
-      {
-        1: Tipo.amarillo,
-        2: Tipo.verde,
-        3: Tipo.azul,
-        4: Tipo.morado,
-        6: Tipo.verde,
-        7: Tipo.rojo,
-        8: Tipo.morado,
-        10: Tipo.rojo,
-        11: Tipo.azul,
-      },
+      nivel1.zonasPorCelda,
+      nivel1.coloresPorZona,
       [
         [1, 5, 2, 6, 3, 6, 5],
         [2, 5, 2, 2, 3, 6, 2],
@@ -45,19 +50,11 @@ class Tablero {
         [5, 6, 4, 3, 4, 4, 4],
         [2, 1, 1, 6, 5, 4, 6],
       ],
+      puntosPorZona: nivel1.puntos,
     );
   }
 
-  factory Tablero.nivel1Inicial() {
-    final completo = Tablero.nivel1();
-    return Tablero(
-      completo.zonasPorCelda,
-      completo.coloresPorZona,
-      <List<int?>>[
-        for (final fila in completo.valores) <int?>[for (final _ in fila) null],
-      ],
-    );
-  }
+  factory Tablero.nivel1Inicial() => Tablero.deNivel(nivel1);
 
   Zona zona(int id) {
     final tipo = coloresPorZona[id];
@@ -76,7 +73,7 @@ class Tablero {
         }
       }
     }
-    return Zona(id, tipo, encontrados);
+    return Zona(id, tipo, encontrados, puntosPropios: puntosPorZona[tipo]);
   }
 
   List<Zona> zonas() {
@@ -84,7 +81,6 @@ class Tablero {
     return ids.map(zona).toList();
   }
 
- 
   bool tieneVecinoCon(int fila, int columna, int numero) {
     const vecinas = [(-1, 0), (1, 0), (0, -1), (0, 1)];
     for (final (desplazaFila, desplazaColumna) in vecinas) {
@@ -101,6 +97,7 @@ class Tablero {
     final posibles = <(int, int)>[];
     for (var fila = 0; fila < valores.length; fila++) {
       for (var columna = 0; columna < valores[fila].length; columna++) {
+        if (esHueco(fila, columna)) continue;
         if (valores[fila][columna] != null) continue;
         if (!tieneVecinoCon(fila, columna, companero)) continue;
         if (!zona(zonasPorCelda[fila][columna]).aceptaNumero(numero)) continue;
@@ -125,14 +122,14 @@ class Tablero {
   List<Zona> zonasCompletas() =>
       zonas().where((z) => zonaCompleta(z.id) && z.esValida()).toList();
 
-
   int get puntos =>
       zonasCompletas().fold(0, (suma, zona) => suma + zona.puntos.first);
 
   bool estaCompleto() {
-    for (final fila in valores) {
-      for (final valor in fila) {
-        if (valor == null) {
+    for (var fila = 0; fila < valores.length; fila++) {
+      for (var columna = 0; columna < valores[fila].length; columna++) {
+        if (esHueco(fila, columna)) continue;
+        if (valores[fila][columna] == null) {
           return false;
         }
       }

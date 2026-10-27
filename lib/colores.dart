@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'tipo_zona.dart';
 
+const Color colorHueco = Color(0xFFBDBDBD);
+const Color _naranja = Color(0xFFF2A444);
+
 Color colorDe(Tipo tipo) {
   switch (tipo) {
     case Tipo.rojo:
@@ -14,6 +17,11 @@ Color colorDe(Tipo tipo) {
       return const Color(0xFF1E88E5);
     case Tipo.morado:
       return const Color(0xFF8E24AA);
+    case Tipo.blanco:
+      return const Color(0xFFE8E8E0);
+    case Tipo.naranja1a3:
+    case Tipo.naranja4a6:
+      return _naranja;
   }
 }
 
