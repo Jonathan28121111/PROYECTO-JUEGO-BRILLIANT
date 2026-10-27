@@ -29,6 +29,9 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
   bool get completo => numeros.length == total;
 
   void _soltar((int, int) celda, int numero) {
+    if (!_acepta(celda, numero)) {
+      return;
+    }
     setState(() {
       numeros.removeWhere((_, puesto) => puesto == numero);
       numeros[celda] = numero;
@@ -39,11 +42,6 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
     setState(() => numeros.remove(celda));
   }
 
-  /// ¿Esta casilla acepta ese número según la regla de su zona?
-  ///
-  /// En el nivel 4 importa: la zona naranja de arriba solo toma del 4 al 6 y
-  /// la de abajo del 1 al 3. Sin esto se puede arrancar la partida con una
-  /// zona ya rota, que después no deja escribir nada.
   bool _acepta((int, int) celda, int numero) {
     final conAnclas = Tablero.deNivel(widget.nivel);
     numeros.forEach((otra, puesto) {
@@ -89,7 +87,6 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                       arrastrando: arrastrando,
                       alSoltar: _soltar,
                       alQuitar: _quitar,
-                      aceptaFicha: _acepta,
                     ),
                   ),
                 ),

@@ -100,10 +100,7 @@ class VistaJuego extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              _Marcador(
-                puntos: tablero.puntos,
-                zonas: tablero.zonasCompletas().length,
-              ),
+              _Marcador(puntos: tablero.puntos),
               const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -164,9 +161,8 @@ class VistaJuego extends StatelessWidget {
 
 class _Marcador extends StatelessWidget {
   final int puntos;
-  final int zonas;
 
-  const _Marcador({required this.puntos, required this.zonas});
+  const _Marcador({required this.puntos});
 
   @override
   Widget build(BuildContext context) {
@@ -188,11 +184,6 @@ class _Marcador extends StatelessWidget {
           Text(
             puntos == 1 ? 'punto' : 'puntos',
             style: const TextStyle(fontSize: 13),
-          ),
-          const SizedBox(width: 14),
-          Text(
-            '$zonas de 9 zonas',
-            style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
         ],
       ),

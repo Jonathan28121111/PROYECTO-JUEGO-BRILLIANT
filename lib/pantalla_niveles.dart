@@ -11,37 +11,40 @@ class PantallaNiveles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const Text(
-            'Elige un tablero',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Son los cuatro niveles oficiales del juego',
-            style: TextStyle(fontSize: 13, color: Colors.black54),
-          ),
-          const SizedBox(height: 24),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 18,
-            runSpacing: 18,
-            children: [
-              for (final nivel in nivelesOficiales)
-                TarjetaNivel(
-                  nivel: nivel,
-                  alTocar: nivel.disponible
-                      ? () => context
-                          .read<TableroBloc>()
-                          .add(NivelElegido(nivel))
-                      : null,
-                ),
-            ],
-          ),
-        ],
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Elige un tablero',
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Son los cuatro niveles oficiales del juego',
+              style: TextStyle(fontSize: 16, color: Colors.black54),
+            ),
+            const SizedBox(height: 30),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 24,
+              runSpacing: 24,
+              children: [
+                for (final nivel in nivelesOficiales)
+                  TarjetaNivel(
+                    nivel: nivel,
+                    alTocar: nivel.disponible
+                        ? () => context
+                            .read<TableroBloc>()
+                            .add(NivelElegido(nivel))
+                        : null,
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -66,8 +69,8 @@ class TarjetaNivel extends StatelessWidget {
           onTap: alTocar,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            width: 190,
-            padding: const EdgeInsets.all(14),
+            width: 250,
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black, width: 2),
               borderRadius: BorderRadius.circular(14),
@@ -78,13 +81,13 @@ class TarjetaNivel extends StatelessWidget {
                 Text(
                   nivel.nombre,
                   style: const TextStyle(
-                    fontSize: 17,
+                    fontSize: 21,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 SizedBox(
-                  height: 150,
+                  height: 210,
                   child: Center(
                     child: nivel.disponible
                         ? MiniaturaNivel(nivel: nivel)
@@ -98,12 +101,12 @@ class TarjetaNivel extends StatelessWidget {
                           ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   nivel.disponible
                       ? '${nivel.coloresPorZona.length} zonas'
                       : 'No disponible',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
               ],
             ),
@@ -114,7 +117,6 @@ class TarjetaNivel extends StatelessWidget {
   }
 }
 
-/// El dibujito del tablero que va dentro de la tarjeta.
 class MiniaturaNivel extends StatelessWidget {
   final Nivel nivel;
 
