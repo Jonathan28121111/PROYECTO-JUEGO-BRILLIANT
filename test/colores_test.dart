@@ -5,9 +5,13 @@ import 'package:pruebas_numeros/tipo_zona.dart';
 
 void main() {
   group('colorDe', () {
-    test('cada color del juego tiene su color de pantalla', () {
-      final colores = Tipo.values.map(colorDe).toSet();
-      expect(colores, hasLength(Tipo.values.length));
+    test('los dos naranjas comparten color y se distinguen por el simbolo', () {
+      expect(colorDe(Tipo.naranja1a3), colorDe(Tipo.naranja4a6));
+    });
+
+    test('los demas tipos no repiten color', () {
+      final otros = Tipo.values.where((t) => t != Tipo.naranja4a6);
+      expect(otros.map(colorDe).toSet(), hasLength(otros.length));
     });
 
     test('ningun color es transparente', () {
@@ -31,6 +35,7 @@ void main() {
     test('sobre un fondo claro escribe en negro', () {
       expect(colorTextoSobre(Colors.white), Colors.black87);
       expect(colorTextoSobre(colorDe(Tipo.amarillo)), Colors.black87);
+      expect(colorTextoSobre(colorDe(Tipo.blanco)), Colors.black87);
     });
 
     test('para cualquier color del juego devuelve uno de los dos', () {

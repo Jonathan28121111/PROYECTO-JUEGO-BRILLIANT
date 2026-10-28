@@ -97,18 +97,19 @@ void main() {
   });
 
   group('el marcador', () {
-    testWidgets('el tablero vacio no muestra zonas hechas', (tester) async {
+    testWidgets('el tablero vacio arranca en cero', (tester) async {
       await montarVista(tester);
 
-      expect(find.text('0 de 9 zonas'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
       expect(find.text('puntos'), findsOneWidget);
+      expect(find.textContaining('zonas'), findsNothing);
     });
 
     testWidgets('el tablero resuelto muestra los 54 puntos', (tester) async {
       await montarVista(tester, tablero: Tablero.nivel1(), resuelto: true);
 
       expect(find.text('54'), findsOneWidget);
-      expect(find.text('9 de 9 zonas'), findsOneWidget);
+      expect(find.textContaining('zonas'), findsNothing);
     });
 
     testWidgets('el puntaje baja si una zona queda incompleta', (tester) async {
@@ -118,7 +119,6 @@ void main() {
       await montarVista(tester, tablero: tablero);
 
       expect(find.text('47'), findsOneWidget);
-      expect(find.text('8 de 9 zonas'), findsOneWidget);
     });
   });
 
@@ -208,7 +208,6 @@ void main() {
         bloc: bloc,
       );
 
-
       bloc.add(ValoresInicialesProporcionados(tableroChico(Tipo.verde)));
       await tester.pump();
       bloc.add(DadosTirados());
@@ -251,12 +250,10 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // El tablero chico es de 1 fila y 3 columnas.
       await tester.tapAt(centroDeCelda(tester, 0, 1, filas: 1, columnas: 3));
       await tester.pump();
 
       expect(juego.tablero.valores[0][1], 3);
-      // Y después de colocar se borran los dados: una tirada, un número.
       final despues = bloc.state as TableroEnJuego;
       expect(despues.dados, null);
       expect(despues.elegido, null);
@@ -286,7 +283,6 @@ void main() {
       bloc.add(NumeroElegido(3));
       await tester.pump();
 
-      // (0,2) no toca ningún 2: no está en posibles y no debe hacer nada.
       await tester.tapAt(centroDeCelda(tester, 0, 2, filas: 1, columnas: 3));
       await tester.pump();
 
