@@ -13,7 +13,10 @@ void main() {
     Nivel nivel = nivel1,
   }) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(PantallaAnclas(nivel: nivel), bloc: bloc));
+    await tester.pumpWidget(montar(
+      PantallaAnclas(key: ValueKey(nivel.numero), nivel: nivel),
+      bloc: bloc,
+    ));
     await tester.pumpAndSettle();
   }
 
@@ -122,8 +125,8 @@ void main() {
       await abrir(tester);
       await arrastrarFicha(tester, 3, 0, 2);
 
-      await tester.tapAt(centroDeCelda(tester, 1, 5)); // ancla, pero vacía
-      await tester.tapAt(centroDeCelda(tester, 0, 0)); // casilla normal
+      await tester.tapAt(centroDeCelda(tester, 1, 5));
+      await tester.tapAt(centroDeCelda(tester, 0, 0));
       await tester.pumpAndSettle();
 
       expect(find.text('1 de 6 colocados'), findsOneWidget);
@@ -209,8 +212,8 @@ void main() {
   });
 
   group('las zonas con rango del nivel 4', () {
-    const anclaArriba = (0, 4); 
-    const anclaAbajo = (6, 1); 
+    const anclaArriba = (0, 4);
+    const anclaAbajo = (6, 1);
 
     testWidgets('rechaza un 3 en la zona que solo toma del 4 al 6',
         (tester) async {
