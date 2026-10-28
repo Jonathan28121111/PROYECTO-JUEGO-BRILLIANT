@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/tablero.dart';
 import 'package:pruebas_numeros/tablero_bloc.dart';
 import 'package:pruebas_numeros/tipo_zona.dart';
@@ -23,7 +24,6 @@ class AzarFijo implements Random {
 
 Future<void> procesar() => Future<void>.delayed(Duration.zero);
 
-/// Una fila de tres casillas de una sola zona, con un 2 ya puesto a la izquierda.
 Tablero tableroDePrueba(Tipo tipo) {
   return Tablero(
     [
@@ -279,6 +279,88 @@ void main() {
       await procesar();
 
       expect(enJuego(bloc).puedeTirar, true);
+
+      await bloc.close();
+    });
+  });
+
+  group('elegir el nivel', () {
+    test('arranca sin nivel elegido', () async {
+      final bloc = TableroBloc();
+
+      expect((bloc.state as TableroSinIniciar).nivel, null);
+
+      await bloc.close();
+    });
+
+    test('NivelElegido guarda el nivel sin dejar avanzar todavia', () async {
+      final bloc = TableroBloc();
+
+      bloc.add(NivelElegido(nivel3));
+      await procesar();
+
+      expect((bloc.state as TableroSinIniciar).nivel?.numero, 3);
+      expect(bloc.state.puedeAvanzar, false);
+
+      await bloc.close();
+    });
+
+    test('se puede cambiar de opinion antes de empezar', () async {
+      final bloc = TableroBloc();
+
+      bloc.add(NivelElegido(nivel2));
+      await procesar();
+      bloc.add(NivelElegido(nivel4));
+      await procesar();
+
+      expect((bloc.state as TableroSinIniciar).nivel?.numero, 4);
+
+      await bloc.close();
+    });
+
+    test('el nivel elegido viaja al estado de juego', () async {
+      final bloc = TableroBloc();
+
+      bloc.add(NivelElegido(nivel4));
+      await procesar();
+      bloc.add(ValoresInicialesProporcionados(Tablero.deNivel(nivel4)));
+      await procesar();
+
+      expect(enJuego(bloc).nivel.numero, 4);
+
+      await bloc.close();
+    });
+
+    test('ya empezada la partida ignora un cambio de nivel', () async {
+      final bloc = TableroBloc();
+
+      bloc.add(NivelElegido(nivel2));
+      await procesar();
+      bloc.add(ValoresInicialesProporcionados(Tablero.deNivel(nivel2)));
+      await procesar();
+
+      final emitidos = <TableroState>[];
+      final sub = bloc.stream.listen(emitidos.add);
+
+      bloc.add(NivelElegido(nivel3));
+      await procesar();
+
+      expect(emitidos, isEmpty);
+      expect(enJuego(bloc).nivel.numero, 2);
+
+      await sub.cancel();
+      await bloc.close();
+    });
+
+    test('un tablero resuelto conserva su nivel', () async {
+      final bloc = TableroBloc();
+
+      bloc.add(NivelElegido(nivel1));
+      await procesar();
+      bloc.add(ValoresInicialesProporcionados(Tablero.nivel1()));
+      await procesar();
+
+      expect((bloc.state as TableroResuelto).nivel.numero, 1);
 
       await bloc.close();
     });
