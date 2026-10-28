@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/pantalla_anclas.dart';
 import 'package:pruebas_numeros/tablero_bloc.dart';
 
 import 'ayudas_interfaz.dart';
 
 void main() {
-
-  Future<void> abrir(WidgetTester tester, {TableroBloc? bloc}) async {
+  Future<void> abrir(
+    WidgetTester tester, {
+    TableroBloc? bloc,
+    Nivel nivel = nivel1,
+  }) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(const PantallaAnclas(), bloc: bloc));
+    await tester.pumpWidget(montar(PantallaAnclas(nivel: nivel), bloc: bloc));
     await tester.pumpAndSettle();
   }
 
@@ -199,9 +203,74 @@ void main() {
 
       expect(find.text('≠'), findsNWidgets(2));
       expect(find.text('='), findsOneWidget);
-      // Derecha.
       expect(find.text('XO'), findsOneWidget);
       expect(find.text('?'), findsOneWidget);
+    });
+  });
+
+  group('las zonas con rango del nivel 4', () {
+    const anclaArriba = (0, 4); 
+    const anclaAbajo = (6, 1); 
+
+    testWidgets('rechaza un 3 en la zona que solo toma del 4 al 6',
+        (tester) async {
+      await abrir(tester, nivel: nivel4);
+
+      await arrastrarFicha(tester, 3, anclaArriba.$1, anclaArriba.$2);
+
+      expect(enElTablero('3'), findsNothing);
+      expect(find.text('0 de 6 colocados'), findsOneWidget);
+      expect(find.widgetWithText(Draggable<int>, '3'), findsOneWidget);
+    });
+
+    testWidgets('acepta un 5 en esa misma casilla', (tester) async {
+      await abrir(tester, nivel: nivel4);
+
+      await arrastrarFicha(tester, 5, anclaArriba.$1, anclaArriba.$2);
+
+      expect(enElTablero('5'), findsOneWidget);
+      expect(find.text('1 de 6 colocados'), findsOneWidget);
+    });
+
+    testWidgets('rechaza un 6 en la zona que solo toma del 1 al 3',
+        (tester) async {
+      await abrir(tester, nivel: nivel4);
+
+      await arrastrarFicha(tester, 6, anclaAbajo.$1, anclaAbajo.$2);
+
+      expect(enElTablero('6'), findsNothing);
+      expect(find.text('0 de 6 colocados'), findsOneWidget);
+    });
+
+    testWidgets('acepta un 2 en esa misma casilla', (tester) async {
+      await abrir(tester, nivel: nivel4);
+
+      await arrastrarFicha(tester, 2, anclaAbajo.$1, anclaAbajo.$2);
+
+      expect(enElTablero('2'), findsOneWidget);
+    });
+  });
+
+  group('las anclas de los otros niveles', () {
+    testWidgets('sin zonas de rango cualquier numero entra', (tester) async {
+      for (final nivel in [nivel1, nivel2, nivel3]) {
+        await abrir(tester, nivel: nivel);
+
+        final ancla = nivel.anclas.first;
+        await arrastrarFicha(tester, 3, ancla.$1, ancla.$2);
+
+        expect(enElTablero('3'), findsOneWidget,
+            reason: 'el nivel ${nivel.numero} rechazo un 3');
+      }
+    });
+
+    testWidgets('cada nivel dibuja sus propias estrellas', (tester) async {
+      for (final nivel in nivelesOficiales) {
+        await abrir(tester, nivel: nivel);
+
+        expect(find.byIcon(Icons.star), findsNWidgets(6),
+            reason: 'nivel ${nivel.numero}');
+      }
     });
   });
 }
