@@ -8,14 +8,23 @@ import 'package:pruebas_numeros/pantalla_niveles.dart';
 import 'package:pruebas_numeros/vista_juego.dart';
 
 import 'ayudas_interfaz.dart';
+import 'servidor_falso.dart';
 
 void main() {
   group('prueba de humo', () {
+    Future<void> abrirComoInvitado(WidgetTester tester) async {
+      await tester.pumpWidget(
+        JuegoBrilliantApp(cliente: ServidorFalso().cliente()),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jugar sin cuenta'));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('la app arranca sin reventar', (tester) async {
       pantallaGrande(tester);
 
-      await tester.pumpWidget(const JuegoBrilliantApp());
-      await tester.pumpAndSettle();
+      await abrirComoInvitado(tester);
 
       expect(tester.takeException(), isNull);
       expect(find.text('Juego Brilliant'), findsOneWidget);
@@ -24,8 +33,7 @@ void main() {
     testWidgets('arranca en el selector de niveles', (tester) async {
       pantallaGrande(tester);
 
-      await tester.pumpWidget(const JuegoBrilliantApp());
-      await tester.pumpAndSettle();
+      await abrirComoInvitado(tester);
 
       expect(find.byType(PantallaNiveles), findsOneWidget);
       expect(find.byType(PantallaAnclas), findsNothing);
@@ -40,8 +48,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('al elegir un nivel se pasa a colocar las anclas',
-        (tester) async {
+    testWidgets('al elegir un nivel se pasa a colocar las anclas', (
+      tester,
+    ) async {
       pantallaGrande(tester);
       await tester.pumpWidget(const MaterialApp(home: PantallaJuego()));
       await tester.pumpAndSettle();
