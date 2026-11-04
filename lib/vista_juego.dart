@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'dado_animado.dart';
 import 'dados.dart';
 import 'nivel.dart';
 import 'panel_reglas.dart';
@@ -105,8 +106,10 @@ class VistaJuego extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _Dado(
+                  DadoAnimado(
+                    key: const Key('dado_1'),
                     valor: tirada?.primero,
+                    tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.primero,
                     alTocar: tirada == null
                         ? null
@@ -114,9 +117,11 @@ class VistaJuego extends StatelessWidget {
                             .read<TableroBloc>()
                             .add(NumeroElegido(tirada.primero)),
                   ),
-                  const SizedBox(width: 12),
-                  _Dado(
+                  const SizedBox(width: 18),
+                  DadoAnimado(
+                    key: const Key('dado_2'),
                     valor: tirada?.segundo,
+                    tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.segundo,
                     alTocar: tirada == null
                         ? null
@@ -186,48 +191,6 @@ class _Marcador extends StatelessWidget {
             style: const TextStyle(fontSize: 13),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Dado extends StatelessWidget {
-  final int? valor;
-  final bool seleccionado;
-  final VoidCallback? alTocar;
-
-  const _Dado({
-    required this.valor,
-    this.seleccionado = false,
-    this.alTocar,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: alTocar,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 56,
-        height: 56,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color:
-              valor == null ? const Color(0xFFF2B8B5) : const Color(0xFFE53935),
-          border: Border.all(
-            color: seleccionado ? const Color(0xFF1B5E20) : Colors.black,
-            width: seleccionado ? 5 : 2.5,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          valor == null ? '–' : '$valor',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: valor == null ? Colors.black26 : Colors.white,
-          ),
-        ),
       ),
     );
   }
