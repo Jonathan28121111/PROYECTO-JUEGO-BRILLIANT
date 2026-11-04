@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pruebas_numeros/dado_animado.dart';
 import 'package:pruebas_numeros/dados.dart';
 import 'package:pruebas_numeros/tablero.dart';
 import 'package:pruebas_numeros/tablero_bloc.dart';
@@ -123,27 +124,73 @@ void main() {
   });
 
   group('los dados', () {
-    Finder dadoCon(String texto) =>
-        find.widgetWithText(AnimatedContainer, texto);
+    Finder dadoCon(int? valor) => find.byWidgetPredicate(
+          (w) => w is DadoAnimado && w.valor == valor,
+        );
 
     testWidgets('sin tirada los dos salen en blanco', (tester) async {
       await montarVista(tester);
 
-      expect(dadoCon('–'), findsNWidgets(2));
+      expect(dadoCon(null), findsNWidgets(2));
     });
 
     testWidgets('con tirada cada dado muestra su valor', (tester) async {
       await montarVista(tester, dados: const Dados(3, 2), puedeTirar: false);
 
-      expect(dadoCon('3'), findsOneWidget);
-      expect(dadoCon('2'), findsOneWidget);
-      expect(dadoCon('–'), findsNothing);
+      expect(dadoCon(3), findsOneWidget);
+      expect(dadoCon(2), findsOneWidget);
+      expect(dadoCon(null), findsNothing);
     });
 
     testWidgets('con los dos dados iguales se ven los dos', (tester) async {
       await montarVista(tester, dados: const Dados(4, 4), puedeTirar: false);
 
-      expect(dadoCon('4'), findsNWidgets(2));
+      expect(dadoCon(4), findsNWidgets(2));
+    });
+
+    testWidgets('dibujan puntos en vez de numeros', (tester) async {
+      await montarVista(tester, dados: const Dados(3, 2), puedeTirar: false);
+
+      final caras = tester.widgetList<CaraDado>(find.byType(CaraDado));
+      expect(caras.map((c) => c.valor), [3, 2]);
+      expect(
+        find.descendant(
+          of: find.byType(DadoAnimado),
+          matching: find.byType(Text),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('una tirada nueva hace rodar el dado y termina en su valor',
+        (tester) async {
+      pantallaGrande(tester);
+      Widget vista(Dados? dados) => montar(
+            VistaJuego(
+              tablero: Tablero.nivel1Inicial(),
+              dados: dados,
+              puedeTirar: false,
+            ),
+          );
+
+      await tester.pumpWidget(vista(null));
+      await tester.pumpWidget(vista(const Dados(5, 1)));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final girando = tester.widget<Transform>(
+        find
+            .descendant(
+              of: find.byKey(const Key('dado_1')),
+              matching: find.byType(Transform),
+            )
+            .at(1),
+      );
+      expect(girando.transform.isIdentity(), isFalse);
+
+      await tester.pumpAndSettle();
+
+      final caras = tester.widgetList<CaraDado>(find.byType(CaraDado));
+      expect(caras.map((c) => c.valor), [5, 1]);
     });
   });
 
@@ -214,7 +261,7 @@ void main() {
       await tester.pump();
       expect((bloc.state as TableroEnJuego).elegido, null);
 
-      await tester.tap(find.widgetWithText(AnimatedContainer, '3'));
+      await tester.tap(find.byKey(const Key('dado_1')));
       await tester.pump();
 
       expect((bloc.state as TableroEnJuego).elegido, 3);
