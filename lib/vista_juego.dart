@@ -18,6 +18,20 @@ class VistaJuego extends StatelessWidget {
   final bool resuelto;
   final Nivel nivel;
 
+  /// Por defecto las acciones van al [TableroBloc]. En línea las recibe la
+  /// partida, que es la que habla con el servidor.
+  final void Function(int numero)? alElegir;
+  final void Function(int fila, int columna)? alColocar;
+
+  /// En línea los dados los tira el servidor: no hay botón.
+  final bool conBotonTirar;
+
+  /// Si se pueden tocar los dados (en línea, no después de haber jugado).
+  final bool dadosActivos;
+
+  /// Reemplaza el texto de ayuda de abajo.
+  final String? instruccion;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -27,9 +41,15 @@ class VistaJuego extends StatelessWidget {
     this.puedeTirar = true,
     this.resuelto = false,
     this.nivel = nivel1,
+    this.alElegir,
+    this.alColocar,
+    this.conBotonTirar = true,
+    this.dadosActivos = true,
+    this.instruccion,
   });
 
   String get _instruccion {
+    if (instruccion case final texto?) return texto;
     if (resuelto) return '¡Tablero resuelto!';
     if (dados == null) return 'Tira los dados para jugar';
     if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
@@ -43,6 +63,10 @@ class VistaJuego extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tirada = dados;
+    final elegir = alElegir ??
+        (int n) => context.read<TableroBloc>().add(NumeroElegido(n));
+    final colocar = alColocar ??
+        (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
 
     final numeros = <(int, int), int>{};
     for (var fila = 0; fila < tablero.valores.length; fila++) {
@@ -84,9 +108,7 @@ class VistaJuego extends StatelessWidget {
                           posibles: posibles,
                           alSoltar: (_, _) {},
                           alQuitar: (_) {},
-                          alTocar: (celda) => context
-                              .read<TableroBloc>()
-                              .add(NumeroColocado(celda.$1, celda.$2)),
+                          alTocar: (celda) => colocar(celda.$1, celda.$2),
                         ),
                       ),
                     ),
@@ -111,11 +133,9 @@ class VistaJuego extends StatelessWidget {
                     valor: tirada?.primero,
                     tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.primero,
-                    alTocar: tirada == null
+                    alTocar: tirada == null || !dadosActivos
                         ? null
-                        : () => context
-                            .read<TableroBloc>()
-                            .add(NumeroElegido(tirada.primero)),
+                        : () => elegir(tirada.primero),
                   ),
                   const SizedBox(width: 18),
                   DadoAnimado(
@@ -123,16 +143,14 @@ class VistaJuego extends StatelessWidget {
                     valor: tirada?.segundo,
                     tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.segundo,
-                    alTocar: tirada == null
+                    alTocar: tirada == null || !dadosActivos
                         ? null
-                        : () => context
-                            .read<TableroBloc>()
-                            .add(NumeroElegido(tirada.segundo)),
+                        : () => elegir(tirada.segundo),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              FilledButton(
+              if (conBotonTirar) FilledButton(
                 onPressed: (resuelto || !puedeTirar)
                     ? null
                     : () => context.read<TableroBloc>().add(DadosTirados()),
