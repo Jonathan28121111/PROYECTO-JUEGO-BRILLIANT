@@ -7,7 +7,10 @@ import 'tablero.dart';
 import 'tablero_bloc.dart';
 
 class PantallaNiveles extends StatelessWidget {
-  const PantallaNiveles({super.key});
+  /// Algo que va arriba del selector, como la invitación a jugar en línea.
+  final Widget? encabezado;
+
+  const PantallaNiveles({super.key, this.encabezado});
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +20,10 @@ class PantallaNiveles extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (encabezado case final arriba?) ...[
+              arriba,
+              const SizedBox(height: 32),
+            ],
             const Text(
               'Elige un tablero',
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
