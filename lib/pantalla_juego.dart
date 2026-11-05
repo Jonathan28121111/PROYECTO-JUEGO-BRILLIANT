@@ -8,8 +8,13 @@ import 'vista_juego.dart';
 
 class PantallaJuego extends StatelessWidget {
   final List<Widget> acciones;
+  final Widget? encabezadoNiveles;
 
-  const PantallaJuego({super.key, this.acciones = const []});
+  const PantallaJuego({
+    super.key,
+    this.acciones = const [],
+    this.encabezadoNiveles,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +26,7 @@ class PantallaJuego extends StatelessWidget {
           builder: (context, estado) => switch (estado) {
             TableroSinIniciar(:final nivel) =>
               nivel == null
-                  ? const PantallaNiveles()
+                  ? PantallaNiveles(encabezado: encabezadoNiveles)
                   : PantallaAnclas(nivel: nivel),
             TableroEnJuego juego => VistaJuego(
               tablero: juego.tablero,

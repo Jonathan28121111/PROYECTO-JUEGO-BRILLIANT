@@ -319,6 +319,13 @@ void main() {
       await tester.pumpAndSettle();
       await llega(tester, enJuego());
 
+      await tester.tap(find.byKey(const Key('boton_jugar_local')));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Salir de la partida?'), findsOneWidget);
+      await tester.tap(find.text('Seguir jugando'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PantallaEnLinea), findsOneWidget);
+
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(find.text('¿Salir de la partida?'), findsOneWidget);
@@ -457,7 +464,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Necesitas una cuenta'), findsOneWidget);
-      await tester.tap(find.text('Iniciar sesión'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Iniciar sesión'),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Inicio de sesión'), findsOneWidget);
       expect(servidor.conexiones, isEmpty);
@@ -488,6 +500,58 @@ void main() {
       expect(find.text('Hola, ana'), findsOneWidget);
       expect(servidor.recibidos.first['tipo'], 'hola');
       await cerrar(tester);
+    });
+
+    testWidgets('la tarjeta sobre los niveles invita a jugar en linea', (
+      tester,
+    ) async {
+      pantallaGrande(tester);
+      final cuentas = ServidorFalso()..cuentas['ana'] = 'contrasena123';
+      await tester.pumpWidget(
+        JuegoBrilliantApp(
+          cliente: cuentas.cliente(),
+          abrirConexion: servidor.abrir,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('campo_usuario')), 'ana');
+      await tester.enterText(
+        find.byKey(const Key('campo_contrasena')),
+        'contrasena123',
+      );
+      await tester.tap(find.text('Entrar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TarjetaEnLinea), findsOneWidget);
+      expect(find.text('Juega en línea contra otra persona'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('tarjeta_en_linea')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PantallaEnLinea), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('boton_jugar_local')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PantallaEnLinea), findsNothing);
+      expect(find.text('Elige un tablero'), findsOneWidget);
+    });
+
+    testWidgets('sin cuenta la tarjeta pide iniciar sesion', (tester) async {
+      pantallaGrande(tester);
+      await tester.pumpWidget(
+        JuegoBrilliantApp(
+          cliente: ServidorFalso().cliente(),
+          abrirConexion: servidor.abrir,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jugar sin cuenta'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('tarjeta_en_linea')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Necesitas una cuenta'), findsOneWidget);
+      expect(servidor.conexiones, isEmpty);
     });
   });
 }

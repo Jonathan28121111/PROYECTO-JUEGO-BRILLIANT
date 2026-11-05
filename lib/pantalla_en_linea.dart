@@ -34,12 +34,98 @@ class BotonEnLinea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: TextButton.icon(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilledButton.icon(
         key: const Key('boton_en_linea'),
-        icon: const Icon(Icons.groups_outlined),
+        icon: const Icon(Icons.groups_outlined, size: 20),
         label: const Text('Jugar en línea'),
         onPressed: () => abrirModoEnLinea(context),
+      ),
+    );
+  }
+}
+
+/// La invitación a jugar en línea que aparece arriba de los niveles.
+class TarjetaEnLinea extends StatelessWidget {
+  const TarjetaEnLinea({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final conCuenta = context.watch<SesionBloc>().state is ConCuenta;
+    final colores = Theme.of(context).colorScheme;
+
+    final textos = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Juega en línea contra otra persona',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          conCuenta
+              ? 'Crea una sala y comparte el código, o únete con el código '
+                    'de tu amigo.'
+              : 'Inicia sesión con tu cuenta para crear una sala o unirte '
+                    'a la de un amigo.',
+          style: const TextStyle(fontSize: 14, color: _gris, height: 1.35),
+        ),
+      ],
+    );
+    final boton = FilledButton.icon(
+      key: const Key('tarjeta_en_linea'),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+      ),
+      icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+      label: Text(conCuenta ? 'Jugar en línea' : 'Iniciar sesión'),
+      onPressed: () => abrirModoEnLinea(context),
+    );
+    final icono = Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: colores.primary,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(Icons.groups_rounded, color: colores.onPrimary, size: 28),
+    );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 820),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: colores.primaryContainer.withValues(alpha: 0.35),
+          border: Border.all(color: colores.primary.withValues(alpha: 0.25)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: LayoutBuilder(
+          builder: (context, espacio) => espacio.maxWidth < 560
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        icono,
+                        const SizedBox(width: 14),
+                        Expanded(child: textos),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    boton,
+                  ],
+                )
+              : Row(
+                  children: [
+                    icono,
+                    const SizedBox(width: 16),
+                    Expanded(child: textos),
+                    const SizedBox(width: 16),
+                    boton,
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -169,7 +255,21 @@ class _Contenido extends StatelessWidget {
           }
         },
         child: Scaffold(
-          appBar: AppBar(title: const Text('Jugar en línea')),
+          appBar: AppBar(
+            title: const Text('Jugar en línea'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: OutlinedButton.icon(
+                  key: const Key('boton_jugar_local'),
+                  icon: const Icon(Icons.person_outline_rounded, size: 20),
+                  label: const Text('Jugar local'),
+                  // maybePop respeta la confirmación si hay partida en curso.
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+            ],
+          ),
           body: Column(
             children: [
               const BannerConexion(),
