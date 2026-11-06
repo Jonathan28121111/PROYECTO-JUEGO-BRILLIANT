@@ -27,6 +27,9 @@ class UnirseSala extends PartidaEvent {
   UnirseSala(this.codigo);
 }
 
+/// El jugador volvió a escribir en el campo del código: el error se va.
+class CorregirCodigo extends PartidaEvent {}
+
 class SalirSala extends PartidaEvent {}
 
 class EmpezarPartida extends PartidaEvent {}
@@ -108,6 +111,9 @@ class PartidaState {
   /// Por qué el servidor nos sacó (otra ventana, sesión vencida...).
   final String? motivoExpulsion;
 
+  /// Por qué no se pudo entrar con el código. Va debajo del campo.
+  final String? errorCodigo;
+
   const PartidaState({
     this.conexion = EstadoConexion.conectando,
     this.sala,
@@ -120,6 +126,7 @@ class PartidaState {
     this.avisoEsError = false,
     this.numeroAviso = 0,
     this.motivoExpulsion,
+    this.errorCodigo,
   });
 
   bool get conectado => conexion == EstadoConexion.conectado;
@@ -142,6 +149,7 @@ class PartidaState {
     int? intentos,
     int? Function()? segundosParaReintentar,
     String? motivoExpulsion,
+    String? Function()? errorCodigo,
   }) => PartidaState(
     conexion: conexion ?? this.conexion,
     sala: sala == null ? this.sala : sala(),
@@ -156,6 +164,7 @@ class PartidaState {
     avisoEsError: avisoEsError,
     numeroAviso: numeroAviso,
     motivoExpulsion: motivoExpulsion ?? this.motivoExpulsion,
+    errorCodigo: errorCodigo == null ? this.errorCodigo : errorCodigo(),
   );
 
   PartidaState conAviso(String texto, {bool error = false}) => PartidaState(
@@ -170,6 +179,7 @@ class PartidaState {
     avisoEsError: error,
     numeroAviso: numeroAviso + 1,
     motivoExpulsion: motivoExpulsion,
+    errorCodigo: errorCodigo,
   );
 }
 
@@ -190,6 +200,7 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
   bool _cerrando = false;
   bool _reenviarAlVolver = false;
   bool _saliendo = false;
+  bool _esperandoUnirse = false;
   int? _rondaPasada;
 
   PartidaBloc({
@@ -221,6 +232,11 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
       (e, emit) => _pedir(emit, {'tipo': 'crear_sala', 'nivel': e.nivel}),
     );
     on<UnirseSala>(_alUnirse);
+    on<CorregirCodigo>((_, emit) {
+      if (state.errorCodigo != null) {
+        emit(state.copyWith(errorCodigo: () => null));
+      }
+    });
     on<SalirSala>((_, emit) {
       _saliendo = true;
       _pedir(emit, {'tipo': 'salir_sala'});
@@ -371,6 +387,17 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
           );
           return;
         }
+        if (_esperandoUnirse) {
+          _esperandoUnirse = false;
+          emit(
+            state.copyWith(
+              cargando: false,
+              errorCodigo: () =>
+                  m['mensaje'] as String? ?? 'No se pudo entrar.',
+            ),
+          );
+          return;
+        }
         var nuevo = state;
         if (clave == 'ya_jugaste' || clave == 'ronda_equivocada') {
           // La jugada no cuenta: el tablero vuelve a lo que dice el servidor.
@@ -389,7 +416,12 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
   }
 
   void _alEstado(SalaEnLinea sala, Emitter<PartidaState> emit) {
-    var nuevo = state.copyWith(sala: () => sala, cargando: false);
+    _esperandoUnirse = false;
+    var nuevo = state.copyWith(
+      sala: () => sala,
+      cargando: false,
+      errorCodigo: () => null,
+    );
     String? aviso;
 
     if (sala.fase != FaseSala.anclas) {
@@ -478,9 +510,15 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
   void _alUnirse(UnirseSala e, Emitter<PartidaState> emit) {
     final codigo = e.codigo.trim().toUpperCase();
     if (codigo.length != 6) {
-      emit(state.conAviso('El código tiene 6 caracteres.', error: true));
+      emit(
+        state.copyWith(
+          errorCodigo: () => 'Escribe los 6 caracteres del código de la sala.',
+        ),
+      );
       return;
     }
+    emit(state.copyWith(errorCodigo: () => null));
+    _esperandoUnirse = state.conectado;
     _pedir(emit, {'tipo': 'unirse', 'codigo': codigo});
   }
 

@@ -193,10 +193,17 @@ void main() {
       await esperar();
 
       expect(servidor.tipos, isNot(contains('unirse')));
-      expect(bloc.state.avisoEsError, isTrue);
+      expect(
+        bloc.state.errorCodigo,
+        'Escribe los 6 caracteres del código de la sala.',
+      );
+
+      bloc.add(CorregirCodigo());
+      await esperar();
+      expect(bloc.state.errorCodigo, isNull);
     });
 
-    test('un error del servidor se muestra como aviso', () async {
+    test('un error al unirse va debajo del campo del codigo', () async {
       await conectar();
       bloc.add(UnirseSala('ZZZZZZ'));
       await esperar();
@@ -206,7 +213,8 @@ void main() {
         'mensaje': 'No hay ninguna sala con ese código.',
       });
 
-      expect(bloc.state.aviso, 'No hay ninguna sala con ese código.');
+      expect(bloc.state.errorCodigo, 'No hay ninguna sala con ese código.');
+      expect(bloc.state.aviso, isNull);
       expect(bloc.state.cargando, isFalse);
     });
 

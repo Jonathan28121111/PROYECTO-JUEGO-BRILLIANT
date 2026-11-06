@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pruebas_numeros/dado_animado.dart';
 import 'package:pruebas_numeros/dados.dart';
+import 'package:pruebas_numeros/panel_reglas.dart';
+import 'package:pruebas_numeros/tablero_interfaz.dart';
 import 'package:pruebas_numeros/tablero.dart';
 import 'package:pruebas_numeros/tablero_bloc.dart';
 import 'package:pruebas_numeros/tipo_zona.dart';
@@ -160,6 +163,76 @@ void main() {
         ),
         findsNothing,
       );
+    });
+
+    testWidgets('con reducir movimiento el dado cambia de cara sin rodar',
+        (tester) async {
+      pantallaGrande(tester);
+      Widget vista(Dados? dados) => MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: montar(
+              VistaJuego(
+                tablero: Tablero.nivel1Inicial(),
+                dados: dados,
+                puedeTirar: false,
+              ),
+            ),
+          );
+
+      await tester.pumpWidget(vista(null));
+      await tester.pumpWidget(vista(const Dados(5, 1)));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final giro = tester.widget<Transform>(
+        find
+            .descendant(
+              of: find.byKey(const Key('dado_1')),
+              matching: find.byType(Transform),
+            )
+            .at(1),
+      );
+      expect(giro.transform.isIdentity(), isTrue);
+      final caras = tester.widgetList<CaraDado>(find.byType(CaraDado));
+      expect(caras.map((c) => c.valor), [5, 1]);
+    });
+
+    testWidgets('el dado se puede elegir con el teclado', (tester) async {
+      final bloc = TableroBloc(azar: AzarFijo([3, 2]));
+      addTearDown(bloc.close);
+      await montarVista(
+        tester,
+        tablero: tableroChico(Tipo.verde),
+        dados: const Dados(3, 2),
+        puedeTirar: false,
+        bloc: bloc,
+      );
+      bloc.add(ValoresInicialesProporcionados(tableroChico(Tipo.verde)));
+      await tester.pump();
+      bloc.add(DadosTirados());
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect((bloc.state as TableroEnJuego).elegido, 3);
+    });
+
+    testWidgets('en pantalla angosta el tablero ocupa el ancho y las reglas '
+        'van debajo', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(montar(
+        VistaJuego(tablero: Tablero.nivel1Inicial()),
+      ));
+
+      expect(tester.takeException(), isNull);
+      final tablero = tester.getRect(find.byType(TableroInterfaz));
+      expect(tablero.width, greaterThan(300));
+      final regla = tester.getRect(find.byType(PanelReglas).first);
+      expect(regla.top, greaterThan(tablero.bottom));
     });
 
     testWidgets('una tirada nueva hace rodar el dado y termina en su valor',

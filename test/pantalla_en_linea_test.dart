@@ -6,6 +6,7 @@ import 'package:pruebas_numeros/main.dart';
 import 'package:pruebas_numeros/pantalla_anclas.dart';
 import 'package:pruebas_numeros/pantalla_en_linea.dart';
 import 'package:pruebas_numeros/sesion_bloc.dart';
+import 'package:pruebas_numeros/tablero_interfaz.dart';
 import 'package:pruebas_numeros/vista_juego.dart';
 
 import 'ayudas_interfaz.dart';
@@ -72,7 +73,8 @@ void main() {
 
       expect(find.text('Hola, ana'), findsOneWidget);
       expect(find.text('Crear sala'), findsWidgets);
-      expect(find.text('Unirse con código'), findsOneWidget);
+      expect(find.text('Unirse a una sala'), findsOneWidget);
+      expect(find.text('Código de la sala'), findsOneWidget);
       await cerrar(tester);
     });
 
@@ -124,10 +126,18 @@ void main() {
 
       expect(find.text('K7P2QX'), findsOneWidget);
       expect(find.text('Esperando a tu rival…'), findsOneWidget);
-      final empezar = tester.widget<FilledButton>(
-        find.byKey(const Key('boton_empezar')),
+      expect(find.text('Nivel 1 · 1 de 2 jugadores'), findsOneWidget);
+
+      // El botón nunca está apagado: si falta el rival, explica qué hacer.
+      await tester.tap(find.byKey(const Key('boton_empezar')));
+      await tester.pump();
+      expect(
+        find.text(
+          'Falta que tu rival se una. Compártele el código para empezar.',
+        ),
+        findsOneWidget,
       );
-      expect(empezar.onPressed, isNull);
+      expect(servidor.tipos, isNot(contains('empezar')));
       await cerrar(tester);
     });
 
@@ -271,7 +281,7 @@ void main() {
 
       await tester.tap(find.byKey(const Key('boton_rendirse')));
       await tester.pumpAndSettle();
-      expect(find.text('¿Rendirte?'), findsOneWidget);
+      expect(find.text('¿Rendirte ante beto?'), findsOneWidget);
 
       await tester.tap(find.text('Seguir jugando'));
       await tester.pumpAndSettle();
@@ -321,14 +331,14 @@ void main() {
 
       await tester.tap(find.byKey(const Key('boton_jugar_local')));
       await tester.pumpAndSettle();
-      expect(find.text('¿Salir de la partida?'), findsOneWidget);
+      expect(find.text('¿Salir y rendirte ante beto?'), findsOneWidget);
       await tester.tap(find.text('Seguir jugando'));
       await tester.pumpAndSettle();
       expect(find.byType(PantallaEnLinea), findsOneWidget);
 
       await tester.pageBack();
       await tester.pumpAndSettle();
-      expect(find.text('¿Salir de la partida?'), findsOneWidget);
+      expect(find.text('¿Salir y rendirte ante beto?'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('confirmar_rendicion')));
       await tester.pumpAndSettle();
@@ -553,5 +563,92 @@ void main() {
       expect(find.text('Necesitas una cuenta'), findsOneWidget);
       expect(servidor.conexiones, isEmpty);
     });
+  });
+
+  group('pantallas angostas', () {
+    Future<void> abrirAngosta(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider(
+            create: (_) => SesionBloc(ServidorFalso().cliente()),
+            child: PantallaEnLinea(
+              cuenta: const Cuenta(usuario: 'ana', token: 'token-de-ana'),
+              abrir: servidor.abrir,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+    }
+
+    testWidgets('a 375 px la partida cabe y el tablero ocupa el ancho', (
+      tester,
+    ) async {
+      await abrirAngosta(tester);
+      await llega(tester, enJuego());
+
+      expect(tester.takeException(), isNull);
+      final tablero = tester.getRect(
+        find.descendant(
+          of: find.byType(TableroInterfaz),
+          matching: find.byType(AspectRatio),
+        ),
+      );
+      expect(tablero.width, greaterThan(300));
+      await cerrar(tester);
+    });
+
+    testWidgets('a 375 px los botones de la barra son iconos con tooltip', (
+      tester,
+    ) async {
+      await abrirAngosta(tester);
+      await llega(tester, enJuego());
+
+      final rendirse = tester.widget<IconButton>(
+        find.byKey(const Key('boton_rendirse')),
+      );
+      expect(rendirse.tooltip, 'Rendirse');
+      final local = tester.widget<IconButton>(
+        find.byKey(const Key('boton_jugar_local')),
+      );
+      expect(local.tooltip, 'Volver a jugar local');
+      await cerrar(tester);
+    });
+  });
+
+  group('conectando', () {
+    testWidgets('mientras conecta el lobby ya se ve, con el estado en linea', (
+      tester,
+    ) async {
+      servidor.caido = true;
+      await abrir(tester);
+
+      expect(find.text('Hola, ana'), findsOneWidget);
+      expect(find.text('Conectando con el servidor…'), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets(
+      'el error del codigo se ve debajo del campo y se va al editar',
+      (tester) async {
+        await abrir(tester);
+        await tester.enterText(find.byKey(const Key('campo_codigo')), 'AB');
+        await tester.tap(find.byKey(const Key('boton_unirse')));
+        await tester.pump();
+
+        const error = 'Escribe los 6 caracteres del código de la sala.';
+        expect(find.text(error), findsOneWidget);
+        expect(servidor.tipos, isNot(contains('unirse')));
+
+        await tester.enterText(find.byKey(const Key('campo_codigo')), 'ABC');
+        await tester.pump();
+        expect(find.text(error), findsNothing);
+        await cerrar(tester);
+      },
+    );
   });
 }

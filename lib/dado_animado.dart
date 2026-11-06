@@ -33,8 +33,9 @@ class DadoAnimado extends StatefulWidget {
 
 class _DadoAnimadoState extends State<DadoAnimado>
     with SingleTickerProviderStateMixin {
-  static const _duracion = Duration(milliseconds: 650);
-  static const _cambiosDeCara = 8;
+  // 300 ms es el token más largo de la escala de movimiento.
+  static const _duracion = Duration(milliseconds: 300);
+  static const _cambiosDeCara = 5;
 
   late final AnimationController _giro = AnimationController(
     vsync: this,
@@ -49,6 +50,8 @@ class _DadoAnimadoState extends State<DadoAnimado>
   void didUpdateWidget(DadoAnimado viejo) {
     super.didUpdateWidget(viejo);
     if (widget.valor != null && !identical(viejo.tirada, widget.tirada)) {
+      // Con "reducir movimiento" activo el dado cambia de cara sin rodar.
+      if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
       _rodar();
     }
   }
@@ -84,12 +87,12 @@ class _DadoAnimadoState extends State<DadoAnimado>
       selected: widget.seleccionado,
       label: vacio ? 'Dado sin tirar' : 'Dado: ${widget.valor}',
       excludeSemantics: true,
-      child: MouseRegion(
-        cursor: widget.alTocar == null
-            ? MouseCursor.defer
-            : SystemMouseCursors.click,
-        child: GestureDetector(
+      // InkWell: se puede enfocar con Tab y activar con Enter o Espacio.
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
           onTap: widget.alTocar,
+          borderRadius: BorderRadius.circular(widget.tamano * 0.2),
           child: AnimatedBuilder(
             animation: _giro,
             builder: (context, _) {
