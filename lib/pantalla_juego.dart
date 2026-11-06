@@ -6,18 +6,32 @@ import 'pantalla_niveles.dart';
 import 'tablero_bloc.dart';
 import 'vista_juego.dart';
 
-class PantallaJuego extends StatelessWidget {
+class PantallaJuego extends StatefulWidget {
   final List<Widget> acciones;
-  final Widget? encabezadoNiveles;
+
+  /// La tarjeta del modo en línea. Con ella la portada pregunta primero
+  /// cómo se quiere jugar.
+  final Widget? tarjetaEnLinea;
 
   const PantallaJuego({
     super.key,
     this.acciones = const [],
-    this.encabezadoNiveles,
+    this.tarjetaEnLinea,
   });
 
   @override
+  State<PantallaJuego> createState() => _PantallaJuegoState();
+}
+
+class _PantallaJuegoState extends State<PantallaJuego> {
+  /// Ya se eligió jugar solo: se ven los tableros y no los modos.
+  bool _viendoTableros = false;
+
+  @override
   Widget build(BuildContext context) {
+    final conModos = widget.tarjetaEnLinea != null;
+    final viendoTableros = _viendoTableros || !conModos;
+
     return BlocProvider(
       create: (_) => TableroBloc(),
       child: BlocBuilder<TableroBloc, TableroState>(
@@ -26,19 +40,37 @@ class PantallaJuego extends StatelessWidget {
               estado is TableroSinIniciar && estado.nivel == null;
           final ancho = MediaQuery.sizeOf(context).width >= 600;
 
+          final Widget? atras;
+          if (!enSeleccion) {
+            atras = BotonSalirTablero(estado: estado, conTexto: ancho);
+          } else if (conModos && viendoTableros) {
+            atras = _BotonAtras(
+              clave: const Key('volver_modos'),
+              texto: 'Modos',
+              tooltip: 'Volver a elegir cómo jugar',
+              conTexto: ancho,
+              alTocar: () => setState(() => _viendoTableros = false),
+            );
+          } else {
+            atras = null;
+          }
+
           return Scaffold(
             appBar: AppBar(
-              leadingWidth: enSeleccion ? null : (ancho ? 136 : 56),
-              leading: enSeleccion
-                  ? null
-                  : BotonSalirTablero(estado: estado, conTexto: ancho),
+              leadingWidth: atras == null ? null : (ancho ? 136 : 56),
+              leading: atras,
               title: const Text('Juego Brilliant'),
-              actions: acciones,
+              actions: widget.acciones,
             ),
             body: switch (estado) {
               TableroSinIniciar(:final nivel) =>
                 nivel == null
-                    ? PantallaNiveles(encabezado: encabezadoNiveles)
+                    ? PantallaNiveles(
+                        tarjetaEnLinea: widget.tarjetaEnLinea,
+                        viendoTableros: viendoTableros,
+                        alElegirSolo: () =>
+                            setState(() => _viendoTableros = true),
+                      )
                     : PantallaAnclas(nivel: nivel),
               TableroEnJuego juego => VistaJuego(
                 tablero: juego.tablero,
@@ -56,6 +88,43 @@ class PantallaJuego extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _BotonAtras extends StatelessWidget {
+  final Key clave;
+  final String texto;
+  final String tooltip;
+  final bool conTexto;
+  final VoidCallback alTocar;
+
+  const _BotonAtras({
+    required this.clave,
+    required this.texto,
+    required this.tooltip,
+    required this.conTexto,
+    required this.alTocar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!conTexto) {
+      return IconButton(
+        key: clave,
+        tooltip: tooltip,
+        icon: const Icon(Icons.arrow_back_rounded),
+        onPressed: alTocar,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: TextButton.icon(
+        key: clave,
+        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+        label: Text(texto),
+        onPressed: alTocar,
       ),
     );
   }
@@ -107,23 +176,11 @@ class BotonSalirTablero extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!conTexto) {
-      return IconButton(
-        key: const Key('salir_tablero'),
-        tooltip: 'Volver a los tableros',
-        icon: const Icon(Icons.arrow_back_rounded),
-        onPressed: () => _salir(context),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: TextButton.icon(
-        key: const Key('salir_tablero'),
-        icon: const Icon(Icons.arrow_back_rounded, size: 20),
-        label: const Text('Tableros'),
-        onPressed: () => _salir(context),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _BotonAtras(
+    clave: const Key('salir_tablero'),
+    texto: 'Tableros',
+    tooltip: 'Volver a los tableros',
+    conTexto: conTexto,
+    alTocar: () => _salir(context),
+  );
 }

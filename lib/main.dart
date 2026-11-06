@@ -49,7 +49,7 @@ class JuegoBrilliantApp extends StatelessWidget {
               SinSesion() => const PantallaCuenta(),
               ConCuenta() || Invitado() => const PantallaJuego(
                 acciones: [BotonEnLinea(), MenuCuenta()],
-                encabezadoNiveles: TarjetaEnLinea(),
+                tarjetaEnLinea: TarjetaEnLinea(),
               ),
             },
           ),
