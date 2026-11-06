@@ -221,7 +221,7 @@ void main() {
       await bloc.close();
     });
   });
-    group('cuando se puede volver a tirar', () {
+  group('cuando se puede volver a tirar', () {
     test('no deja tirar de nuevo si hay jugada pendiente', () async {
       final bloc = TableroBloc(azar: AzarFijo([3, 2]));
       bloc.add(ValoresInicialesProporcionados(tableroDePrueba(Tipo.verde)));
@@ -281,6 +281,23 @@ void main() {
       expect(enJuego(bloc).puedeTirar, true);
 
       await bloc.close();
+    });
+  });
+
+  group('volver al inicio', () {
+    test('deja el tablero y vuelve a la seleccion de niveles', () async {
+      final bloc = TableroBloc(azar: AzarFijo([3, 2]));
+      addTearDown(bloc.close);
+      bloc.add(NivelElegido(nivel2));
+      bloc.add(ValoresInicialesProporcionados(Tablero.deNivel(nivel2)));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state, isA<TableroEnJuego>());
+
+      bloc.add(VolverAlInicio());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<TableroSinIniciar>());
+      expect((bloc.state as TableroSinIniciar).nivel, isNull);
     });
   });
 

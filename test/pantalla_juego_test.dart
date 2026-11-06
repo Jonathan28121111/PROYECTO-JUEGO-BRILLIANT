@@ -99,4 +99,75 @@ void main() {
       expect(find.byType(VistaJuego), findsNothing);
     });
   });
+
+  group('salir del tablero', () {
+    Future<void> abrirNivel1(WidgetTester tester) async {
+      pantallaGrande(tester);
+      await tester.pumpWidget(const MaterialApp(home: PantallaJuego()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nivel 1'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> empezarPartida(WidgetTester tester) async {
+      await abrirNivel1(tester);
+      for (var n = 1; n <= 6; n++) {
+        final ancla = nivel1.anclas[n - 1];
+        await arrastrarFicha(tester, n, ancla.$1, ancla.$2);
+      }
+      await tester.tap(find.text('¡Listo! Empezar a jugar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('en la seleccion no hay boton de salir', (tester) async {
+      pantallaGrande(tester);
+      await tester.pumpWidget(const MaterialApp(home: PantallaJuego()));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('salir_tablero')), findsNothing);
+    });
+
+    testWidgets('mientras se ponen las anclas sale directo', (tester) async {
+      await abrirNivel1(tester);
+
+      await tester.tap(find.byKey(const Key('salir_tablero')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PantallaNiveles), findsOneWidget);
+      expect(find.byType(PantallaAnclas), findsNothing);
+    });
+
+    testWidgets('a media partida pregunta y nombra el tablero', (tester) async {
+      await empezarPartida(tester);
+
+      await tester.tap(find.byKey(const Key('salir_tablero')));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Salir del Nivel 1?'), findsOneWidget);
+
+      await tester.tap(find.text('Seguir jugando'));
+      await tester.pumpAndSettle();
+      expect(find.byType(VistaJuego), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('salir_tablero')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirmar_salir_tablero')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PantallaNiveles), findsOneWidget);
+      expect(find.byType(VistaJuego), findsNothing);
+    });
+
+    testWidgets('despues de salir se puede elegir otro tablero', (
+      tester,
+    ) async {
+      await abrirNivel1(tester);
+      await tester.tap(find.byKey(const Key('salir_tablero')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Nivel 2'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PantallaAnclas), findsOneWidget);
+    });
+  });
 }
