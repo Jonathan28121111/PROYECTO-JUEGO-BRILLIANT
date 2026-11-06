@@ -83,10 +83,32 @@ class VistaJuego extends StatelessWidget {
         final altoTablero =
             (restricciones.maxHeight - 250).clamp(220.0, 600.0).toDouble();
 
+        final interfaz = TableroInterfaz(
+          tablero: tablero,
+          anclas: nivel.anclas,
+          numeros: numeros,
+          arrastrando: false,
+          posibles: posibles,
+          alSoltar: (_, _) {},
+          alQuitar: (_) {},
+          alTocar: (celda) => colocar(celda.$1, celda.$2),
+        );
+        final (izquierda, derecha) = reglasDe(nivel);
+
+        // En pantallas angostas los paneles a los lados dejaban el tablero
+        // diminuto: el tablero va a todo lo ancho y las reglas debajo.
+        final angosta = restricciones.maxWidth < 600;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              if (angosta) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: interfaz,
+                ),
+              ] else
               SizedBox(
                 height: altoTablero,
                 child: Row(
@@ -94,28 +116,19 @@ class VistaJuego extends StatelessWidget {
                     SizedBox(
                       width: 140,
                       child: PanelReglas(
-                    reglas: reglasDe(nivel).$1,
+                    reglas: izquierda,
                     puntos: nivel.puntos,
                   ),
                     ),
                     Expanded(
                       child: Center(
-                        child: TableroInterfaz(
-                          tablero: tablero,
-                          anclas: nivel.anclas,
-                          numeros: numeros,
-                          arrastrando: false,
-                          posibles: posibles,
-                          alSoltar: (_, _) {},
-                          alQuitar: (_) {},
-                          alTocar: (celda) => colocar(celda.$1, celda.$2),
-                        ),
+                        child: interfaz,
                       ),
                     ),
                     SizedBox(
                       width: 140,
                       child: PanelReglas(
-                    reglas: reglasDe(nivel).$2,
+                    reglas: derecha,
                     puntos: nivel.puntos,
                   ),
                     ),
@@ -171,9 +184,34 @@ class VistaJuego extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 _instruccion,
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              if (angosta) ...[
+                const SizedBox(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: PanelReglas(
+                        reglas: izquierda,
+                        puntos: nivel.puntos,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: PanelReglas(
+                        reglas: derecha,
+                        puntos: nivel.puntos,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );
