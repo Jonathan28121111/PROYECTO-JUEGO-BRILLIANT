@@ -533,7 +533,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TarjetaEnLinea), findsOneWidget);
-      expect(find.text('Juega en línea contra otra persona'), findsOneWidget);
+      expect(find.byKey(const Key('modo_en_linea')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('tarjeta_en_linea')));
       await tester.pumpAndSettle();
@@ -542,7 +542,7 @@ void main() {
       await tester.tap(find.byKey(const Key('boton_jugar_local')));
       await tester.pumpAndSettle();
       expect(find.byType(PantallaEnLinea), findsNothing);
-      expect(find.text('Elige un tablero'), findsOneWidget);
+      expect(find.text('¿Cómo quieres jugar?'), findsOneWidget);
     });
 
     testWidgets('sin cuenta la tarjeta pide iniciar sesion', (tester) async {
@@ -650,5 +650,19 @@ void main() {
         await cerrar(tester);
       },
     );
+  });
+
+  group('lobby con miniaturas', () {
+    testWidgets('el tablero se elige tocando su miniatura', (tester) async {
+      await abrir(tester);
+
+      await tester.tap(find.byKey(const Key('nivel_3')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('boton_crear_sala')));
+      await tester.pump();
+
+      expect(servidor.recibidos.last, {'tipo': 'crear_sala', 'nivel': 3});
+      await cerrar(tester);
+    });
   });
 }

@@ -30,14 +30,48 @@ void main() {
       expect(find.text('Juego Brilliant'), findsOneWidget);
     });
 
-    testWidgets('arranca en el selector de niveles', (tester) async {
+    testWidgets('arranca preguntando como jugar', (tester) async {
       pantallaGrande(tester);
 
       await abrirComoInvitado(tester);
 
       expect(find.byType(PantallaNiveles), findsOneWidget);
+      expect(find.text('¿Cómo quieres jugar?'), findsOneWidget);
+      expect(find.byKey(const Key('modo_solo')), findsOneWidget);
+      expect(find.byKey(const Key('modo_en_linea')), findsOneWidget);
+      expect(find.byType(TarjetaNivel), findsNothing);
       expect(find.byType(PantallaAnclas), findsNothing);
       expect(find.byType(VistaJuego), findsNothing);
+    });
+
+    testWidgets('jugar solo lleva a los tableros y se puede volver', (
+      tester,
+    ) async {
+      pantallaGrande(tester);
+      await abrirComoInvitado(tester);
+
+      await tester.tap(find.text('Elegir tablero'));
+      await tester.pumpAndSettle();
+      expect(find.text('Elige un tablero'), findsOneWidget);
+      expect(find.byType(TarjetaNivel), findsNWidgets(4));
+
+      await tester.tap(find.byKey(const Key('volver_modos')));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Cómo quieres jugar?'), findsOneWidget);
+    });
+
+    testWidgets('al salir de un tablero se vuelve a los tableros, no a los '
+        'modos', (tester) async {
+      pantallaGrande(tester);
+      await abrirComoInvitado(tester);
+      await tester.tap(find.text('Elegir tablero'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nivel 1'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('salir_tablero')));
+      await tester.pumpAndSettle();
+
       expect(find.text('Elige un tablero'), findsOneWidget);
     });
   });

@@ -10,80 +10,259 @@ const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
 const Color _borde = Color(0xFFE5E7EB);
 
-/// La portada: cómo jugar y qué tablero. Patrón Dashboard / Overview: un
-/// título, una frase y a lo más cinco tarjetas que llevan a otra pantalla.
+/// La portada. Con [tarjetaEnLinea] tiene dos pasos: primero se elige el
+/// modo (solo o en línea) y, para jugar solo, después el tablero.
 class PantallaNiveles extends StatelessWidget {
-  /// La invitación a jugar en línea, que va antes de los tableros.
-  final Widget? encabezado;
+  /// La tarjeta del modo en línea. Sin ella se va directo a los tableros.
+  final Widget? tarjetaEnLinea;
 
-  const PantallaNiveles({super.key, this.encabezado});
+  /// Si ya se eligió jugar solo y toca mostrar los tableros.
+  final bool viendoTableros;
+  final VoidCallback? alElegirSolo;
+
+  const PantallaNiveles({
+    super.key,
+    this.tarjetaEnLinea,
+    this.viendoTableros = true,
+    this.alElegirSolo,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final arriba = encabezado;
+    final enLinea = tarjetaEnLinea;
+    final elegirModo = enLinea != null && !viendoTableros;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 32, 16, 48),
+      padding: const EdgeInsets.fromLTRB(16, 40, 16, 48),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1040),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (arriba != null) ...[
-                const Text(
-                  '¿Cómo quieres jugar?',
-                  style: TextStyle(
-                    fontSize: 28,
-                    height: 1.2,
-                    fontWeight: FontWeight.w600,
-                    color: _texto,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Juega solo en uno de los tableros oficiales, o en línea '
-                  'contra otra persona.',
-                  style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
-                ),
-                const SizedBox(height: 24),
-                arriba,
-                const SizedBox(height: 48),
-              ],
-              const Text(
-                'Elige un tablero',
-                style: TextStyle(
-                  fontSize: 20,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                  color: _texto,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Son los cuatro niveles oficiales del juego',
-                style: TextStyle(fontSize: 14, height: 1.5, color: _secundario),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 24,
-                runSpacing: 24,
-                children: [
-                  for (final nivel in nivelesOficiales)
-                    TarjetaNivel(
-                      nivel: nivel,
-                      alTocar: nivel.disponible
-                          ? () => context
-                              .read<TableroBloc>()
-                              .add(NivelElegido(nivel))
-                          : null,
-                    ),
-                ],
-              ),
-            ],
-          ),
+          constraints: BoxConstraints(maxWidth: elegirModo ? 880 : 1040),
+          child: elegirModo
+              ? _SelectorModo(enLinea: enLinea, alElegirSolo: alElegirSolo)
+              : const _SelectorTablero(),
         ),
       ),
+    );
+  }
+}
+
+class _SelectorModo extends StatelessWidget {
+  final Widget enLinea;
+  final VoidCallback? alElegirSolo;
+
+  const _SelectorModo({required this.enLinea, required this.alElegirSolo});
+
+  @override
+  Widget build(BuildContext context) {
+    final solo = TarjetaModo(
+      key: const Key('modo_solo'),
+      ilustracion: const SizedBox(
+        width: 96,
+        child: MiniaturaNivel(nivel: nivel1),
+      ),
+      titulo: 'Jugar solo',
+      descripcion: 'Elige uno de los cuatro tableros oficiales y juega a tu '
+          'ritmo.',
+      accion: 'Elegir tablero',
+      alTocar: alElegirSolo,
+      destacada: false,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '¿Cómo quieres jugar?',
+          style: TextStyle(
+            fontSize: 28,
+            height: 1.2,
+            fontWeight: FontWeight.w600,
+            color: _texto,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Juega solo o reta a otra persona en línea.',
+          style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
+        ),
+        const SizedBox(height: 32),
+        LayoutBuilder(
+          builder: (context, espacio) => espacio.maxWidth < 640
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [solo, const SizedBox(height: 16), enLinea],
+                )
+              : _Estirar(
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: solo),
+                        const SizedBox(width: 24),
+                        Expanded(child: enLinea),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Avisa a las tarjetas de modo que van lado a lado con la misma altura, para
+/// que bajen el botón al fondo y queden alineados.
+class _Estirar extends InheritedWidget {
+  const _Estirar({required super.child});
+
+  @override
+  bool updateShouldNotify(_Estirar viejo) => false;
+}
+
+/// Una tarjeta grande de modo de juego: ilustración arriba, título, una
+/// frase y el botón. Toda la tarjeta se puede tocar.
+class TarjetaModo extends StatelessWidget {
+  final Widget ilustracion;
+  final String titulo;
+  final String descripcion;
+  final String accion;
+  final IconData iconoAccion;
+  final VoidCallback? alTocar;
+
+  /// La destacada lleva el botón relleno; la otra, el tono suave.
+  final bool destacada;
+  final Key? claveBoton;
+
+  const TarjetaModo({
+    super.key,
+    required this.ilustracion,
+    required this.titulo,
+    required this.descripcion,
+    required this.accion,
+    required this.alTocar,
+    this.iconoAccion = Icons.arrow_forward_rounded,
+    this.destacada = true,
+    this.claveBoton,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = Theme.of(context).colorScheme;
+    final estirar = context.dependOnInheritedWidgetOfExactType<_Estirar>() != null;
+    final forma = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: _borde),
+    );
+    final etiqueta = Text(accion);
+    final icono = Icon(iconoAccion, size: 20);
+    final boton = destacada
+        ? FilledButton.icon(
+            key: claveBoton,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: alTocar,
+            icon: icono,
+            label: etiqueta,
+          )
+        : FilledButton.tonalIcon(
+            key: claveBoton,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            onPressed: alTocar,
+            icon: icono,
+            label: etiqueta,
+          );
+
+    return Material(
+      color: Colors.white,
+      shape: forma,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: alTocar,
+        customBorder: forma,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: 144,
+              color: colores.primaryContainer.withValues(alpha: 0.4),
+              alignment: Alignment.center,
+              child: ilustracion,
+            ),
+            Expanded(
+              flex: estirar ? 1 : 0,
+              child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                      color: _texto,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    descripcion,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: _secundario,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (estirar) const Spacer(),
+                  boton,
+                ],
+              ),
+            ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectorTablero extends StatelessWidget {
+  const _SelectorTablero();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Elige un tablero',
+          style: TextStyle(
+            fontSize: 28,
+            height: 1.2,
+            fontWeight: FontWeight.w600,
+            color: _texto,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Son los cuatro niveles oficiales del juego',
+          style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
+        ),
+        const SizedBox(height: 32),
+        Wrap(
+          spacing: 24,
+          runSpacing: 24,
+          children: [
+            for (final nivel in nivelesOficiales)
+              TarjetaNivel(
+                nivel: nivel,
+                alTocar: nivel.disponible
+                    ? () => context.read<TableroBloc>().add(NivelElegido(nivel))
+                    : null,
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
