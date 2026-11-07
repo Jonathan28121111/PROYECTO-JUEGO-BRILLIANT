@@ -10,6 +10,7 @@ import 'conexion_juego.dart';
 import 'dados.dart';
 import 'nivel.dart';
 import 'pantalla_anclas.dart';
+import 'pantalla_niveles.dart';
 import 'partida_bloc.dart';
 import 'sala_en_linea.dart';
 import 'sesion_bloc.dart';
@@ -95,91 +96,65 @@ class BotonEnLinea extends StatelessWidget {
   }
 }
 
-/// La invitación a jugar en línea, en la portada.
+/// La tarjeta del modo en línea en la portada, junto a "Jugar solo".
 class TarjetaEnLinea extends StatelessWidget {
   const TarjetaEnLinea({super.key});
 
   @override
   Widget build(BuildContext context) {
     final conCuenta = context.watch<SesionBloc>().state is ConCuenta;
-    final colores = Theme.of(context).colorScheme;
 
-    final textos = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return TarjetaModo(
+      key: const Key('modo_en_linea'),
+      claveBoton: const Key('tarjeta_en_linea'),
+      ilustracion: const _Duelo(),
+      titulo: 'Jugar en línea',
+      descripcion: conCuenta
+          ? 'Crea una sala y comparte el código, o únete a la de un amigo. '
+                'Los dos juegan con los mismos dados.'
+          : 'Inicia sesión para crear una sala o unirte a la de un amigo.',
+      accion: conCuenta ? 'Jugar en línea' : 'Iniciar sesión para jugar',
+      iconoAccion: conCuenta
+          ? Icons.arrow_forward_rounded
+          : Icons.login_rounded,
+      alTocar: () => abrirModoEnLinea(context),
+    );
+  }
+}
+
+/// Dos jugadores frente a frente: la ilustración del modo en línea.
+class _Duelo extends StatelessWidget {
+  const _Duelo();
+
+  @override
+  Widget build(BuildContext context) {
+    final primario = Theme.of(context).colorScheme.primary;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Juega en línea contra otra persona', style: _tituloSeccion),
-        const SizedBox(height: 4),
-        Text(
-          conCuenta
-              ? 'Crea una sala y comparte el código, o únete con el código '
-                    'de tu amigo. Los dos juegan con los mismos dados.'
-              : 'Necesitas una cuenta para que el servidor te reconozca si se '
-                    'corta la conexión.',
-          style: _apoyo,
-        ),
-      ],
-    );
-    final boton = FilledButton.icon(
-      key: const Key('tarjeta_en_linea'),
-      style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-      icon: Icon(
-        conCuenta ? Icons.arrow_forward_rounded : Icons.login_rounded,
-        size: 20,
-      ),
-      label: Text(conCuenta ? 'Jugar en línea' : 'Iniciar sesión para jugar'),
-      onPressed: () => abrirModoEnLinea(context),
-    );
-    final icono = Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: colores.primary,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(Icons.groups_rounded, color: colores.onPrimary, size: 24),
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: _borde),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D111827),
-            blurRadius: 16,
-            offset: Offset(0, 4),
+        const AvatarUsuario(tamano: 56),
+        const SizedBox(width: 16),
+        Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: _borde),
           ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, espacio) => espacio.maxWidth < 560
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      icono,
-                      const SizedBox(width: 16),
-                      Expanded(child: textos),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  boton,
-                ],
-              )
-            : Row(
-                children: [
-                  icono,
-                  const SizedBox(width: 16),
-                  Expanded(child: textos),
-                  const SizedBox(width: 24),
-                  boton,
-                ],
-              ),
-      ),
+          child: Text(
+            'VS',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: primario,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        AvatarUsuario(tamano: 56, color: primario),
+      ],
     );
   }
 }
@@ -511,7 +486,8 @@ class _Expulsado extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Lobby — patrón Form (page): columna angosta, etiquetas sobre los campos.
+// Lobby: dos tarjetas con el mismo estilo que la portada, una para crear
+// la sala y otra para unirse con el código.
 
 class Lobby extends StatefulWidget {
   const Lobby({super.key});
@@ -551,114 +527,258 @@ class _LobbyState extends State<Lobby> {
     final estado = bloc.state;
     bool ocupado(_Pedido pedido) => estado.cargando && _pedido == pedido;
 
-    return _Columna(
-      ancho: 640,
-      children: [
-        Text('Hola, ${bloc.usuario}', style: _tituloPagina),
-        const SizedBox(height: 8),
-        const Text(
-          'Crea una sala e invita a alguien con el código, o únete a la sala '
-          'de otra persona.',
-          style: _apoyo,
-        ),
-        if (!estado.conectado) ...[
-          const SizedBox(height: 12),
-          const _Estado(
-            icono: _Girando(),
-            texto: 'Conectando con el servidor…',
-          ),
-        ],
-        const SizedBox(height: 32),
-
-        const Text('Crear una sala', style: _tituloSeccion),
-        const SizedBox(height: 4),
-        const Text(
-          'Los dos juegan el mismo tablero con los mismos dados.',
-          style: _apoyo,
-        ),
-        const SizedBox(height: 16),
+    _PanelLobby crear({required bool estirar}) => _PanelLobby(
+      estirar: estirar,
+      icono: Icons.add_rounded,
+      titulo: 'Crear sala',
+      descripcion:
+          'Elige el tablero. Te damos un código para invitar a tu '
+          'rival.',
+      contenido: [
         const Text('Tablero', style: _etiqueta),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final nivel in nivelesOficiales)
-              ChoiceChip(
-                key: Key('nivel_${nivel.numero}'),
-                label: Text(nivel.nombre),
-                selected: _nivel == nivel.numero,
-                onSelected: nivel.disponible
-                    ? (_) => setState(() => _nivel = nivel.numero)
-                    : null,
-              ),
+        _SelectorNivel(
+          elegido: _nivel,
+          alElegir: (n) => setState(() => _nivel = n),
+        ),
+      ],
+      boton: FilledButton(
+        key: const Key('boton_crear_sala'),
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        onPressed: _crear,
+        child: ocupado(_Pedido.crear)
+            ? const _Girando(claro: true)
+            : const Text('Crear sala'),
+      ),
+    );
+
+    _PanelLobby unirse({required bool estirar}) => _PanelLobby(
+      estirar: estirar,
+      icono: Icons.login_rounded,
+      titulo: 'Unirse a una sala',
+      descripcion: 'Escribe el código de 6 caracteres que te compartieron.',
+      contenido: [
+        TextField(
+          key: const Key('campo_codigo'),
+          controller: _codigo,
+          maxLength: 6,
+          textAlign: TextAlign.center,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+            _Mayusculas(),
           ],
-        ),
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton(
-            key: const Key('boton_crear_sala'),
-            style: FilledButton.styleFrom(minimumSize: const Size(160, 48)),
-            onPressed: _crear,
-            child: ocupado(_Pedido.crear)
-                ? const _Girando(claro: true)
-                : const Text('Crear sala'),
+          style: const TextStyle(
+            fontSize: 24,
+            height: 1.25,
+            letterSpacing: 8,
+            fontWeight: FontWeight.w600,
+            color: _texto,
+          ),
+          onChanged: (_) => context.read<PartidaBloc>().add(CorregirCodigo()),
+          onSubmitted: (_) => _unirse(),
+          decoration: InputDecoration(
+            labelText: 'Código de la sala',
+            hintText: 'K7P2QX',
+            counterText: '',
+            errorText: estado.errorCodigo,
+            errorMaxLines: 2,
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 20,
+            ),
           ),
         ),
+      ],
+      boton: FilledButton(
+        key: const Key('boton_unirse'),
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        onPressed: _unirse,
+        child: ocupado(_Pedido.unirse)
+            ? const _Girando(claro: true)
+            : const Text('Unirse a la sala'),
+      ),
+    );
 
-        const SizedBox(height: 32),
-        const Divider(color: _borde, height: 1),
-        const SizedBox(height: 32),
-
-        const Text('Unirse a una sala', style: _tituloSeccion),
-        const SizedBox(height: 4),
-        const Text(
-          'Escribe el código de 6 caracteres que te compartieron.',
-          style: _apoyo,
-        ),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
-          child: TextField(
-            key: const Key('campo_codigo'),
-            controller: _codigo,
-            maxLength: 6,
-            textCapitalization: TextCapitalization.characters,
-            autocorrect: false,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
-              _Mayusculas(),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 40, 16, 48),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 880),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hola, ${bloc.usuario}',
+                style: _tituloPagina.copyWith(fontSize: 28, height: 1.2),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Crea una sala e invita a alguien con el código, o únete a '
+                'la sala de otra persona.',
+                style: _cuerpo.copyWith(color: _secundario),
+              ),
+              if (!estado.conectado) ...[
+                const SizedBox(height: 12),
+                const _Estado(
+                  icono: _Girando(),
+                  texto: 'Conectando con el servidor…',
+                ),
+              ],
+              const SizedBox(height: 32),
+              LayoutBuilder(
+                builder: (context, espacio) => espacio.maxWidth < 640
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          crear(estirar: false),
+                          const SizedBox(height: 16),
+                          unirse(estirar: false),
+                        ],
+                      )
+                    : IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: crear(estirar: true)),
+                            const SizedBox(width: 24),
+                            Expanded(child: unirse(estirar: true)),
+                          ],
+                        ),
+                      ),
+              ),
             ],
-            style: const TextStyle(
-              fontSize: 20,
-              letterSpacing: 4,
-              fontWeight: FontWeight.w500,
-            ),
-            onChanged: (_) => context.read<PartidaBloc>().add(CorregirCodigo()),
-            onSubmitted: (_) => _unirse(),
-            decoration: InputDecoration(
-              labelText: 'Código de la sala',
-              hintText: 'K7P2QX',
-              counterText: '',
-              errorText: estado.errorCodigo,
-              errorMaxLines: 2,
-              border: const OutlineInputBorder(),
-            ),
           ),
         ),
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton.tonal(
-            key: const Key('boton_unirse'),
-            style: FilledButton.styleFrom(minimumSize: const Size(160, 48)),
-            onPressed: _unirse,
-            child: ocupado(_Pedido.unirse)
-                ? const _Girando()
-                : const Text('Unirse a la sala'),
+      ),
+    );
+  }
+}
+
+class _PanelLobby extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String descripcion;
+  final List<Widget> contenido;
+  final Widget boton;
+
+  /// Lado a lado las dos tarjetas miden lo mismo y el botón baja al fondo.
+  final bool estirar;
+
+  const _PanelLobby({
+    this.estirar = false,
+    required this.icono,
+    required this.titulo,
+    required this.descripcion,
+    required this.contenido,
+    required this.boton,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: _borde),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: colores.primaryContainer.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icono, color: colores.primary),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          Text(titulo, style: _tituloSeccion.copyWith(fontSize: 20)),
+          const SizedBox(height: 8),
+          Text(descripcion, style: _apoyo),
+          const SizedBox(height: 24),
+          ...contenido,
+          const SizedBox(height: 24),
+          if (estirar) const Spacer(),
+          boton,
+        ],
+      ),
+    );
+  }
+}
+
+/// Los tableros como miniaturas que se tocan para elegir.
+class _SelectorNivel extends StatelessWidget {
+  final int elegido;
+  final ValueChanged<int> alElegir;
+
+  const _SelectorNivel({required this.elegido, required this.alElegir});
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        for (final (i, nivel) in nivelesOficiales.indexed) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              selected: elegido == nivel.numero,
+              button: true,
+              label: nivel.nombre,
+              excludeSemantics: true,
+              child: Material(
+                color: elegido == nivel.numero
+                    ? colores.primaryContainer.withValues(alpha: 0.5)
+                    : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: elegido == nivel.numero ? colores.primary : _borde,
+                    width: elegido == nivel.numero ? 2 : 1,
+                  ),
+                ),
+                child: InkWell(
+                  key: Key('nivel_${nivel.numero}'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: nivel.disponible ? () => alElegir(nivel.numero) : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      children: [
+                        MiniaturaNivel(nivel: nivel),
+                        const SizedBox(height: 8),
+                        Text(
+                          nivel.nombre,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.5,
+                            fontWeight: elegido == nivel.numero
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: _texto,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
