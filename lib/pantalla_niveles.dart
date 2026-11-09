@@ -374,38 +374,62 @@ class MiniaturaNivel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Se pinta todo de una vez: con 49 casillas como widgets separados cada
+    // miniatura costaba unos 200 elementos.
     return AspectRatio(
       aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF374151), width: 1.5),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            for (var fila = 0; fila < nivel.filas; fila++)
-              Expanded(
-                child: Row(
-                  children: [
-                    for (var columna = 0; columna < nivel.columnas; columna++)
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.all(0.5),
-                          color: nivel.zonasPorCelda[fila][columna] == hueco
-                              ? colorHueco
-                              : colorDe(
-                                  nivel.coloresPorZona[
-                                      nivel.zonasPorCelda[fila][columna]]!,
-                                ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+      child: RepaintBoundary(
+        child: CustomPaint(painter: _PintorMiniatura(nivel)),
       ),
     );
   }
+}
+
+class _PintorMiniatura extends CustomPainter {
+  final Nivel nivel;
+
+  _PintorMiniatura(this.nivel);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final marco = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(4),
+    );
+    canvas.save();
+    canvas.clipRRect(marco);
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
+
+    final ancho = size.width / nivel.columnas;
+    final alto = size.height / nivel.filas;
+    final pintura = Paint();
+    for (var fila = 0; fila < nivel.filas; fila++) {
+      for (var columna = 0; columna < nivel.columnas; columna++) {
+        final zona = nivel.zonasPorCelda[fila][columna];
+        pintura.color = zona == hueco
+            ? colorHueco
+            : colorDe(nivel.coloresPorZona[zona]!);
+        canvas.drawRect(
+          Rect.fromLTWH(
+            columna * ancho + 0.5,
+            fila * alto + 0.5,
+            ancho - 1,
+            alto - 1,
+          ),
+          pintura,
+        );
+      }
+    }
+    canvas.restore();
+    canvas.drawRRect(
+      marco.deflate(0.75),
+      Paint()
+        ..color = const Color(0xFF374151)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_PintorMiniatura viejo) => viejo.nivel != nivel;
 }
