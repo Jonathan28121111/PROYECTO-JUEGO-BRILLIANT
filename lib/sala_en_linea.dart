@@ -137,6 +137,18 @@ Tablero tableroCon(Nivel nivel, Map<(int, int), int> casillas) {
   return tablero;
 }
 
+/// Los puntajes de cada zona en orden de llegada (`{"1": [8, 6, 4]}`): el
+/// servidor da el primero a quien completa la zona antes que su rival.
+Map<String, List<int>> tablaDePuntos(Nivel nivel) => {
+  for (final zona in Tablero.deNivel(nivel).zonas()) '${zona.id}': zona.puntos,
+};
+
+/// Las zonas completas y válidas del tablero, para que el servidor sepa en
+/// qué ronda se completó cada una.
+List<int> zonasCompletas(Tablero tablero) => [
+  for (final zona in tablero.zonasCompletas()) zona.id,
+];
+
 /// Si con esos dados hay alguna casilla donde escribir.
 bool hayJugadaCon(Tablero tablero, Dados dados) =>
     tablero.celdasPosibles(dados.primero, dados.segundo).isNotEmpty ||

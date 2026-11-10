@@ -32,6 +32,10 @@ class VistaJuego extends StatelessWidget {
   /// Reemplaza el texto de ayuda de abajo.
   final String? instruccion;
 
+  /// Los puntos a mostrar. En línea los da el servidor, que sabe quién
+  /// completó cada zona primero; solo se calculan con el tablero.
+  final int? puntos;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -46,6 +50,7 @@ class VistaJuego extends StatelessWidget {
     this.conBotonTirar = true,
     this.dadosActivos = true,
     this.instruccion,
+    this.puntos,
   });
 
   String get _instruccion {
@@ -136,7 +141,7 @@ class VistaJuego extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              _Marcador(puntos: tablero.puntos),
+              _Marcador(puntos: puntos ?? tablero.puntos),
               const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
