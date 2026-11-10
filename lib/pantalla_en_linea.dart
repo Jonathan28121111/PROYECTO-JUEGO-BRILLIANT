@@ -1316,6 +1316,7 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
             conBotonTirar: false,
             dadosActivos: !yaJugue,
             instruccion: instruccion,
+            puntos: yo?.puntos,
             alElegir: (n) => setState(() => _elegido = n),
             alColocar: (fila, columna) {
               final numero = _elegido;
