@@ -93,31 +93,33 @@ class _DadoAnimadoState extends State<DadoAnimado>
         child: InkWell(
           onTap: widget.alTocar,
           borderRadius: BorderRadius.circular(widget.tamano * 0.2),
-          child: AnimatedBuilder(
-            animation: _giro,
-            builder: (context, _) {
-              final t = _giro.value;
-              final frenado = 1 - Curves.easeOutCubic.transform(t);
-              final angulo = _sentido * frenado * pi * 3;
-              final salto = sin(t * pi) * widget.tamano * 0.28;
-              final escala = 1 + sin(t * pi) * 0.12;
+          child: RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _giro,
+              builder: (context, _) {
+                final t = _giro.value;
+                final frenado = 1 - Curves.easeOutCubic.transform(t);
+                final angulo = _sentido * frenado * pi * 3;
+                final salto = sin(t * pi) * widget.tamano * 0.28;
+                final escala = 1 + sin(t * pi) * 0.12;
 
-              return Transform.translate(
-                offset: Offset(0, -salto),
-                child: Transform.rotate(
-                  angle: angulo,
-                  child: Transform.scale(
-                    scale: escala,
-                    child: _Cuerpo(
-                      cara: _caraVisible(t),
-                      vacio: vacio,
-                      seleccionado: widget.seleccionado,
-                      tamano: widget.tamano,
+                return Transform.translate(
+                  offset: Offset(0, -salto),
+                  child: Transform.rotate(
+                    angle: angulo,
+                    child: Transform.scale(
+                      scale: escala,
+                      child: _Cuerpo(
+                        cara: _caraVisible(t),
+                        vacio: vacio,
+                        seleccionado: widget.seleccionado,
+                        tamano: widget.tamano,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
