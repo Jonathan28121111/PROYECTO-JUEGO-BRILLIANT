@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'dado_animado.dart';
 import 'dados.dart';
 import 'nivel.dart';
 import 'panel_reglas.dart';
@@ -17,6 +18,20 @@ class VistaJuego extends StatelessWidget {
   final bool resuelto;
   final Nivel nivel;
 
+  /// Por defecto las acciones van al [TableroBloc]. En línea las recibe la
+  /// partida, que es la que habla con el servidor.
+  final void Function(int numero)? alElegir;
+  final void Function(int fila, int columna)? alColocar;
+
+  /// En línea los dados los tira el servidor: no hay botón.
+  final bool conBotonTirar;
+
+  /// Si se pueden tocar los dados (en línea, no después de haber jugado).
+  final bool dadosActivos;
+
+  /// Reemplaza el texto de ayuda de abajo.
+  final String? instruccion;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -26,9 +41,15 @@ class VistaJuego extends StatelessWidget {
     this.puedeTirar = true,
     this.resuelto = false,
     this.nivel = nivel1,
+    this.alElegir,
+    this.alColocar,
+    this.conBotonTirar = true,
+    this.dadosActivos = true,
+    this.instruccion,
   });
 
   String get _instruccion {
+    if (instruccion case final texto?) return texto;
     if (resuelto) return '¡Tablero resuelto!';
     if (dados == null) return 'Tira los dados para jugar';
     if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
@@ -42,6 +63,10 @@ class VistaJuego extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tirada = dados;
+    final elegir = alElegir ??
+        (int n) => context.read<TableroBloc>().add(NumeroElegido(n));
+    final colocar = alColocar ??
+        (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
 
     final numeros = <(int, int), int>{};
     for (var fila = 0; fila < tablero.valores.length; fila++) {
@@ -58,10 +83,32 @@ class VistaJuego extends StatelessWidget {
         final altoTablero =
             (restricciones.maxHeight - 250).clamp(220.0, 600.0).toDouble();
 
+        final interfaz = TableroInterfaz(
+          tablero: tablero,
+          anclas: nivel.anclas,
+          numeros: numeros,
+          arrastrando: false,
+          posibles: posibles,
+          alSoltar: (_, _) {},
+          alQuitar: (_) {},
+          alTocar: (celda) => colocar(celda.$1, celda.$2),
+        );
+        final (izquierda, derecha) = reglasDe(nivel);
+
+        // En pantallas angostas los paneles a los lados dejaban el tablero
+        // diminuto: el tablero va a todo lo ancho y las reglas debajo.
+        final angosta = restricciones.maxWidth < 600;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              if (angosta) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: interfaz,
+                ),
+              ] else
               SizedBox(
                 height: altoTablero,
                 child: Row(
@@ -69,30 +116,19 @@ class VistaJuego extends StatelessWidget {
                     SizedBox(
                       width: 140,
                       child: PanelReglas(
-                    reglas: reglasDe(nivel).$1,
+                    reglas: izquierda,
                     puntos: nivel.puntos,
                   ),
                     ),
                     Expanded(
                       child: Center(
-                        child: TableroInterfaz(
-                          tablero: tablero,
-                          anclas: nivel.anclas,
-                          numeros: numeros,
-                          arrastrando: false,
-                          posibles: posibles,
-                          alSoltar: (_, _) {},
-                          alQuitar: (_) {},
-                          alTocar: (celda) => context
-                              .read<TableroBloc>()
-                              .add(NumeroColocado(celda.$1, celda.$2)),
-                        ),
+                        child: interfaz,
                       ),
                     ),
                     SizedBox(
                       width: 140,
                       child: PanelReglas(
-                    reglas: reglasDe(nivel).$2,
+                    reglas: derecha,
                     puntos: nivel.puntos,
                   ),
                     ),
@@ -105,29 +141,29 @@ class VistaJuego extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _Dado(
+                  DadoAnimado(
+                    key: const Key('dado_1'),
                     valor: tirada?.primero,
+                    tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.primero,
-                    alTocar: tirada == null
+                    alTocar: tirada == null || !dadosActivos
                         ? null
-                        : () => context
-                            .read<TableroBloc>()
-                            .add(NumeroElegido(tirada.primero)),
+                        : () => elegir(tirada.primero),
                   ),
-                  const SizedBox(width: 12),
-                  _Dado(
+                  const SizedBox(width: 18),
+                  DadoAnimado(
+                    key: const Key('dado_2'),
                     valor: tirada?.segundo,
+                    tirada: tirada,
                     seleccionado: tirada != null && elegido == tirada.segundo,
-                    alTocar: tirada == null
+                    alTocar: tirada == null || !dadosActivos
                         ? null
-                        : () => context
-                            .read<TableroBloc>()
-                            .add(NumeroElegido(tirada.segundo)),
+                        : () => elegir(tirada.segundo),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              FilledButton(
+              if (conBotonTirar) FilledButton(
                 onPressed: (resuelto || !puedeTirar)
                     ? null
                     : () => context.read<TableroBloc>().add(DadosTirados()),
@@ -148,9 +184,34 @@ class VistaJuego extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 _instruccion,
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              if (angosta) ...[
+                const SizedBox(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: PanelReglas(
+                        reglas: izquierda,
+                        puntos: nivel.puntos,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: PanelReglas(
+                        reglas: derecha,
+                        puntos: nivel.puntos,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         );
@@ -186,48 +247,6 @@ class _Marcador extends StatelessWidget {
             style: const TextStyle(fontSize: 13),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Dado extends StatelessWidget {
-  final int? valor;
-  final bool seleccionado;
-  final VoidCallback? alTocar;
-
-  const _Dado({
-    required this.valor,
-    this.seleccionado = false,
-    this.alTocar,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: alTocar,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 56,
-        height: 56,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color:
-              valor == null ? const Color(0xFFF2B8B5) : const Color(0xFFE53935),
-          border: Border.all(
-            color: seleccionado ? const Color(0xFF1B5E20) : Colors.black,
-            width: seleccionado ? 5 : 2.5,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          valor == null ? '–' : '$valor',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: valor == null ? Colors.black26 : Colors.white,
-          ),
-        ),
       ),
     );
   }
