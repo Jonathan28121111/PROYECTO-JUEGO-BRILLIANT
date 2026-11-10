@@ -1529,7 +1529,8 @@ class _CuentaRegresivaState extends State<CuentaRegresiva> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(_restantes);
+  Widget build(BuildContext context) =>
+      RepaintBoundary(child: widget.builder(_restantes));
 }
 
 /// Superficie L1: borde de 1px y filas separadas por líneas finas.
