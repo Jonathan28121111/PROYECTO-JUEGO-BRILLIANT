@@ -86,7 +86,8 @@ void main() {
       await tester.tap(find.byKey(const Key('boton_crear_sala')));
       await tester.pump();
 
-      expect(servidor.recibidos.last, {'tipo': 'crear_sala', 'nivel': 2});
+      expect(servidor.recibidos.last['tipo'], 'crear_sala');
+      expect(servidor.recibidos.last['nivel'], 2);
       await cerrar(tester);
     });
 
@@ -661,7 +662,30 @@ void main() {
       await tester.tap(find.byKey(const Key('boton_crear_sala')));
       await tester.pump();
 
-      expect(servidor.recibidos.last, {'tipo': 'crear_sala', 'nivel': 3});
+      expect(servidor.recibidos.last['tipo'], 'crear_sala');
+      expect(servidor.recibidos.last['nivel'], 3);
+      await cerrar(tester);
+    });
+  });
+
+  group('puntos en linea', () {
+    testWidgets('el marcador del tablero muestra los puntos del servidor', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        enJuego(
+          jugadores: [
+            jugador('ana', listo: true, puntos: 6),
+            jugador('beto', listo: true, puntos: 8),
+          ],
+        ),
+      );
+
+      // El tablero local no tiene zonas completas, pero el servidor dice 6.
+      expect(find.text('6'), findsWidgets);
+      expect(find.text('6 puntos'), findsOneWidget);
       await cerrar(tester);
     });
   });

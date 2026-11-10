@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'conexion_juego.dart';
+import 'nivel.dart';
 import 'sala_en_linea.dart';
 import 'tablero.dart';
 
@@ -71,6 +72,7 @@ class JugadaPendiente {
   final int numero;
   final int puntos;
   final bool terminado;
+  final List<int> zonas;
 
   const JugadaPendiente({
     required this.ronda,
@@ -79,6 +81,7 @@ class JugadaPendiente {
     required this.numero,
     required this.puntos,
     required this.terminado,
+    this.zonas = const [],
   });
 
   Map<String, Object?> get mensaje => {
@@ -89,6 +92,7 @@ class JugadaPendiente {
     'numero': numero,
     'puntos': puntos,
     'terminado': terminado,
+    'zonas': zonas,
   };
 }
 
@@ -229,7 +233,16 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     on<_MensajeRecibido>(_alRecibir);
     on<_ConexionPerdida>(_alPerder);
     on<CrearSala>(
-      (e, emit) => _pedir(emit, {'tipo': 'crear_sala', 'nivel': e.nivel}),
+      (e, emit) => _pedir(emit, {
+        'tipo': 'crear_sala',
+        'nivel': e.nivel,
+        'puntos': tablaDePuntos(
+          nivelesOficiales.firstWhere(
+            (n) => n.numero == e.nivel,
+            orElse: () => nivel1,
+          ),
+        ),
+      }),
     );
     on<UnirseSala>(_alUnirse);
     on<CorregirCodigo>((_, emit) {
@@ -528,7 +541,11 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         for (var c = 0; c < e.tablero.valores[f].length; c++)
           if (e.tablero.valores[f][c] case final n?) [f, c, n],
     ];
-    _pedir(emit, {'tipo': 'anclas', 'valores': valores});
+    _pedir(emit, {
+      'tipo': 'anclas',
+      'valores': valores,
+      'zonas': zonasCompletas(e.tablero),
+    });
     if (state.conectado) {
       emit(state.copyWith(anclasEnviadas: true, cargando: false));
     }
@@ -563,6 +580,7 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
       numero: e.numero,
       puntos: tablero.puntos,
       terminado: tablero.estaCompleto() && tablero.esValido(),
+      zonas: zonasCompletas(tablero),
     );
     emit(state.copyWith(pendiente: () => jugada));
 

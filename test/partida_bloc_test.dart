@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/partida_bloc.dart';
 import 'package:pruebas_numeros/sala_en_linea.dart';
 import 'package:pruebas_numeros/tablero.dart';
@@ -159,7 +160,11 @@ void main() {
       bloc.add(CrearSala(2));
       await esperar();
 
-      expect(servidor.recibidos.last, {'tipo': 'crear_sala', 'nivel': 2});
+      expect(servidor.recibidos.last, {
+        'tipo': 'crear_sala',
+        'nivel': 2,
+        'puntos': tablaDePuntos(nivel2),
+      });
       expect(bloc.state.cargando, isTrue);
     });
 
@@ -278,6 +283,7 @@ void main() {
           [0, 2, 1],
           [1, 5, 2],
         ],
+        'zonas': <int>[],
       });
       expect(bloc.state.anclasEnviadas, isTrue);
     });
@@ -298,6 +304,7 @@ void main() {
         'numero': 3,
         'puntos': 0,
         'terminado': false,
+        'zonas': <int>[],
       });
       expect(bloc.state.casillas[(0, 1)], 3);
       expect(bloc.state.pendiente, isNotNull);
@@ -412,6 +419,37 @@ void main() {
       await esperar();
 
       expect(servidor.recibidos.last, {'tipo': 'rendirse'});
+    });
+  });
+
+  group('puntos en linea', () {
+    test('la tabla de puntos trae cada zona del tablero con sus puntajes', () {
+      final tabla = tablaDePuntos(nivel1);
+
+      expect(tabla.keys, hasLength(nivel1.coloresPorZona.length));
+      // La zona 1 del nivel 1 es amarilla: 8, 6 y 4 en orden de llegada.
+      expect(tabla['1'], [8, 6, 4]);
+    });
+
+    test('una jugada que completa una zona la reporta', () async {
+      // Zona 1 del nivel 1: amarilla, casillas (0,0), (0,6), (3,3), (6,0),
+      // (6,6). Con cuatro puestas, la quinta la completa.
+      await enJuego(
+        dados: const [3, 5],
+        mias: const [
+          [0, 0, 1],
+          [0, 6, 2],
+          [3, 3, 4],
+          [6, 0, 6],
+          [6, 5, 5],
+        ],
+      );
+
+      bloc.add(ColocarNumero(6, 6, 3));
+      await esperar();
+
+      expect(servidor.recibidos.last['tipo'], 'jugada');
+      expect(servidor.recibidos.last['zonas'], contains(1));
     });
   });
 }
