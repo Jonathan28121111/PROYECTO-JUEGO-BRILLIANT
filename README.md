@@ -19,12 +19,26 @@ El juego pide entrar o crear una cuenta al abrirse; también se puede **jugar
 sin cuenta**. Las cuentas y las partidas en línea viven en el servidor, que
 está en su propio repositorio: `servidor_brilliant` (carpeta hermana de esta).
 
+La forma fácil de jugar, también con otra persona en el mismo Wi-Fi, es un
+solo comando:
+
+```bash
+./jugar.sh
+```
+
+Arranca el servidor (si no estaba corriendo), compila el juego en modo
+release apuntando a la IP de tu compu y lo sirve. Muestra las dos
+direcciones: la tuya (`http://localhost:5050`) y la que abre la otra persona
+(`http://<tu-ip>:5050`). Tras cambiar código, `./jugar.sh --compilar`.
+
+Para programar con recarga en caliente (va más lento, es modo depuración):
+
 ```bash
 # Terminal 1: el servidor
 cd ../servidor_brilliant && dart run bin/servidor.dart
 
 # Terminal 2: el juego
-flutter run
+flutter run -d chrome
 ```
 
 Por defecto la app busca el servidor en `http://localhost:8080`. Para cambiarlo:
