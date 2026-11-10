@@ -34,45 +34,58 @@ class TableroInterfaz extends StatelessWidget {
     final tocar = alTocar;
     final acepta = aceptaFicha;
 
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black, width: 3),
-        ),
-        child: Column(
-          children: [
-            for (var fila = 0; fila < tablero.zonasPorCelda.length; fila++)
-              Expanded(
-                child: Row(
-                  children: [
-                    for (var columna = 0;
+    // Conjuntos: cada casilla pregunta si es ancla o posible, y así no se
+    // recorre la lista 49 veces.
+    final anclas = this.anclas.toSet();
+    final posibles = this.posibles.toSet();
+
+    // Capa de pintura propia: que ruede un dado o corra el reloj no obliga a
+    // repintar el tablero.
+    return RepaintBoundary(
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black, width: 3),
+          ),
+          child: Column(
+            children: [
+              for (var fila = 0; fila < tablero.zonasPorCelda.length; fila++)
+                Expanded(
+                  child: Row(
+                    children: [
+                      for (
+                        var columna = 0;
                         columna < tablero.zonasPorCelda[fila].length;
-                        columna++)
-                      Expanded(
-                        child: _Celda(
-                          tipo: tablero.esHueco(fila, columna)
-                              ? null
-                              : tablero.tipoDe(fila, columna),
-                          esAncla: anclas.contains((fila, columna)),
-                          numero: numeros[(fila, columna)],
-                          llamando: arrastrando &&
-                              anclas.contains((fila, columna)) &&
-                              numeros[(fila, columna)] == null,
-                          esPosible: posibles.contains((fila, columna)),
-                          alSoltar: (n) => alSoltar((fila, columna), n),
-                          alQuitar: () => alQuitar((fila, columna)),
-                          alTocar:
-                              tocar == null ? null : () => tocar((fila, columna)),
-                          aceptaFicha: acepta == null
-                              ? null
-                              : (n) => acepta((fila, columna), n),
+                        columna++
+                      )
+                        Expanded(
+                          child: _Celda(
+                            tipo: tablero.esHueco(fila, columna)
+                                ? null
+                                : tablero.tipoDe(fila, columna),
+                            esAncla: anclas.contains((fila, columna)),
+                            numero: numeros[(fila, columna)],
+                            llamando:
+                                arrastrando &&
+                                anclas.contains((fila, columna)) &&
+                                numeros[(fila, columna)] == null,
+                            esPosible: posibles.contains((fila, columna)),
+                            alSoltar: (n) => alSoltar((fila, columna), n),
+                            alQuitar: () => alQuitar((fila, columna)),
+                            alTocar: tocar == null
+                                ? null
+                                : () => tocar((fila, columna)),
+                            aceptaFicha: acepta == null
+                                ? null
+                                : (n) => acepta((fila, columna), n),
+                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -174,8 +187,8 @@ class _Celda extends StatelessWidget {
                 opacity: candidatos.isNotEmpty
                     ? 0.45
                     : llamando
-                        ? 0.15
-                        : 0.0,
+                    ? 0.15
+                    : 0.0,
                 duration: const Duration(milliseconds: 200),
                 child: Container(color: Colors.white),
               ),
@@ -204,8 +217,9 @@ class _Celda extends StatelessWidget {
       );
     }
 
-    final tocar =
-        esPosible ? alTocar : (numero != null && esAncla ? alQuitar : null);
+    final tocar = esPosible
+        ? alTocar
+        : (numero != null && esAncla ? alQuitar : null);
     if (tocar == null) {
       return contenido;
     }
