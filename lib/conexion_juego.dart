@@ -5,9 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'cliente_cuentas.dart';
 
-/// Un canal abierto con el servidor de partidas.
 abstract interface class ConexionJuego {
-  /// Los mensajes del servidor. Se cierra cuando se cae la conexión.
   Stream<Map<String, Object?>> get mensajes;
 
   void enviar(Map<String, Object?> mensaje);
@@ -17,7 +15,6 @@ abstract interface class ConexionJuego {
 
 typedef AbrirConexion = Future<ConexionJuego> Function();
 
-/// La dirección `ws://.../juego` a partir de la del servidor de cuentas.
 Uri direccionJuego([String base = direccionServidor]) {
   final http = Uri.parse(base);
   return http.replace(
@@ -26,7 +23,6 @@ Uri direccionJuego([String base = direccionServidor]) {
   );
 }
 
-/// Abre un WebSocket de verdad. Si no conecta en [espera], falla.
 Future<ConexionJuego> abrirWebSocket({
   Uri? direccion,
   Duration espera = const Duration(seconds: 8),
@@ -59,9 +55,7 @@ class _ConexionWebSocket implements ConexionJuego {
     if (_cerrada) return;
     try {
       _canal.sink.add(jsonEncode(mensaje));
-    } catch (_) {
-      // El socket ya se cayó: el cierre del stream avisa al bloc.
-    }
+    } catch (_) {}
   }
 
   @override

@@ -2,16 +2,11 @@ import 'dart:async';
 
 import 'package:pruebas_numeros/conexion_juego.dart';
 
-/// Hace de servidor de partidas: guarda lo que manda el cliente y le
-/// contesta lo que la prueba quiera. Puede tirar la conexión o negarse a
-/// abrirla.
 class ServidorJuegoFalso {
   final List<ConexionFalsa> conexiones = [];
 
-  /// Si es true, los próximos intentos de conexión fallan.
   bool caido = false;
 
-  /// Si es true, contesta solo el saludo con la bienvenida.
   final bool saludarSolo;
   final String usuario;
 
@@ -29,7 +24,6 @@ class ServidorJuegoFalso {
 
   ConexionFalsa get actual => conexiones.last;
 
-  /// Todo lo que mandó el cliente, por todas sus conexiones.
   List<Map<String, Object?>> get recibidos => [
     for (final c in conexiones) ...c.enviados,
   ];
@@ -65,7 +59,6 @@ class ConexionFalsa implements ConexionJuego {
     if (!cerrada) _entrada.add(mensaje);
   }
 
-  /// Simula que se cortó la red.
   void caer() {
     if (cerrada) return;
     cerrada = true;
@@ -80,7 +73,6 @@ class ConexionFalsa implements ConexionJuego {
   }
 }
 
-/// Un estado de sala como el que manda el servidor.
 Map<String, Object?> estadoSala({
   String codigo = 'ABC234',
   int nivel = 1,

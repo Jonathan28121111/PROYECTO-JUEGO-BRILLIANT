@@ -30,13 +30,14 @@ void main() {
       expect(find.text('No disponible'), findsNothing);
     });
 
-    testWidgets('cada tarjeta dice cuantas zonas tiene su tablero',
-        (tester) async {
+    testWidgets('cada tarjeta dice cuantas zonas tiene su tablero', (
+      tester,
+    ) async {
       await abrir(tester);
 
-      expect(find.text('9 zonas'), findsOneWidget); // nivel 1
-      expect(find.text('10 zonas'), findsOneWidget); // nivel 2
-      expect(find.text('8 zonas'), findsNWidgets(2)); // niveles 3 y 4
+      expect(find.text('9 zonas'), findsOneWidget);
+      expect(find.text('10 zonas'), findsOneWidget);
+      expect(find.text('8 zonas'), findsNWidgets(2));
     });
   });
 
@@ -63,13 +64,17 @@ void main() {
         await tester.tap(find.text(nivel.nombre));
         await tester.pumpAndSettle();
 
-        expect((bloc.state as TableroSinIniciar).nivel?.numero, nivel.numero,
-            reason: 'no se pudo elegir ${nivel.nombre}');
+        expect(
+          (bloc.state as TableroSinIniciar).nivel?.numero,
+          nivel.numero,
+          reason: 'no se pudo elegir ${nivel.nombre}',
+        );
       }
     });
 
-    testWidgets('sigue sin poder avanzar hasta dar los valores iniciales',
-        (tester) async {
+    testWidgets('sigue sin poder avanzar hasta dar los valores iniciales', (
+      tester,
+    ) async {
       final bloc = TableroBloc();
       addTearDown(bloc.close);
 

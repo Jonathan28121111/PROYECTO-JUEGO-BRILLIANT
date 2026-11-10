@@ -1,4 +1,3 @@
-
 enum Tipo {
   rojo,
   amarillo,
@@ -63,7 +62,9 @@ class Zona {
   }
 
   bool aceptaNumero(int numero) {
-    return Zona(id, tipo, [...valores, numero], puntosPropios: puntosPropios)
-        .esValida();
+    return Zona(id, tipo, [
+      ...valores,
+      numero,
+    ], puntosPropios: puntosPropios).esValida();
   }
 }

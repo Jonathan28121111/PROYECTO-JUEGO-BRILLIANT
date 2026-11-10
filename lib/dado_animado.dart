@@ -5,13 +5,9 @@ import 'package:flutter/material.dart';
 const Color rojoDado = Color(0xFFE53935);
 const Color rojoDadoApagado = Color(0xFFF2B8B5);
 
-/// Un dado con puntos que rueda cada vez que llega una tirada nueva.
 class DadoAnimado extends StatefulWidget {
-  /// El número que salió, o null si todavía no se ha tirado.
   final int? valor;
 
-  /// Identifica la tirada: cuando cambia, el dado vuelve a rodar aunque el
-  /// número sea el mismo que antes.
   final Object? tirada;
 
   final bool seleccionado;
@@ -33,7 +29,6 @@ class DadoAnimado extends StatefulWidget {
 
 class _DadoAnimadoState extends State<DadoAnimado>
     with SingleTickerProviderStateMixin {
-  // 300 ms es el token más largo de la escala de movimiento.
   static const _duracion = Duration(milliseconds: 300);
   static const _cambiosDeCara = 5;
 
@@ -50,7 +45,6 @@ class _DadoAnimadoState extends State<DadoAnimado>
   void didUpdateWidget(DadoAnimado viejo) {
     super.didUpdateWidget(viejo);
     if (widget.valor != null && !identical(viejo.tirada, widget.tirada)) {
-      // Con "reducir movimiento" activo el dado cambia de cara sin rodar.
       if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
       _rodar();
     }
@@ -72,7 +66,6 @@ class _DadoAnimadoState extends State<DadoAnimado>
 
   int? _caraVisible(double t) {
     if (t >= 1 || _carasDeGiro.isEmpty) return widget.valor;
-    // Las caras cambian rápido al principio y se van frenando.
     final avance = Curves.easeOut.transform(t);
     final indice = (avance * _cambiosDeCara).floor();
     return indice >= _cambiosDeCara ? widget.valor : _carasDeGiro[indice];
@@ -87,7 +80,6 @@ class _DadoAnimadoState extends State<DadoAnimado>
       selected: widget.seleccionado,
       label: vacio ? 'Dado sin tirar' : 'Dado: ${widget.valor}',
       excludeSemantics: true,
-      // InkWell: se puede enfocar con Tab y activar con Enter o Espacio.
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
@@ -176,7 +168,6 @@ class _Cuerpo extends StatelessWidget {
   }
 }
 
-/// Los puntos de una cara del dado, del 1 al 6. Sin valor no dibuja nada.
 class CaraDado extends StatelessWidget {
   final int? valor;
   final Color color;
@@ -198,7 +189,6 @@ class _PintorPuntos extends CustomPainter {
 
   _PintorPuntos(this.valor, this.color);
 
-  // Posiciones en una rejilla de 3x3: 0 = izquierda/arriba, 2 = derecha/abajo.
   static const Map<int, List<(int, int)>> _puntos = {
     1: [(1, 1)],
     2: [(0, 0), (2, 2)],

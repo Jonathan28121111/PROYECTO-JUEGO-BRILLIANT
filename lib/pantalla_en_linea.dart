@@ -16,10 +16,6 @@ import 'sala_en_linea.dart';
 import 'sesion_bloc.dart';
 import 'vista_juego.dart';
 
-// ---------------------------------------------------------------------------
-// Estilo: un solo acento (el primario del tema), grises neutros, rojo solo
-// para lo destructivo. Pesos 400/500/600. Espacios de 4 en 4.
-
 const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
 const Color _borde = Color(0xFFE5E7EB);
@@ -52,51 +48,17 @@ const TextStyle _etiqueta = TextStyle(
   color: _texto,
 );
 
-/// Ancho a partir del cual hay espacio para botones con texto en la barra.
 const double _anchoAmplio = 600;
 
 bool _esAngosto(BuildContext context) =>
     MediaQuery.sizeOf(context).width < _anchoAmplio;
 
-/// Cómo se abre la conexión con el servidor de partidas. Las pruebas la
-/// cambian por una falsa.
 class FabricaConexion {
   final AbrirConexion abrir;
 
   const FabricaConexion(this.abrir);
 }
 
-// ---------------------------------------------------------------------------
-// Entrada desde la portada
-
-/// El botón de la barra para entrar al modo en línea. En pantallas angostas
-/// se queda en ícono, con su tooltip.
-class BotonEnLinea extends StatelessWidget {
-  const BotonEnLinea({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (_esAngosto(context)) {
-      return IconButton(
-        key: const Key('boton_en_linea'),
-        tooltip: 'Jugar en línea',
-        icon: const Icon(Icons.groups_outlined),
-        onPressed: () => abrirModoEnLinea(context),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilledButton.tonalIcon(
-        key: const Key('boton_en_linea'),
-        icon: const Icon(Icons.groups_outlined, size: 20),
-        label: const Text('Jugar en línea'),
-        onPressed: () => abrirModoEnLinea(context),
-      ),
-    );
-  }
-}
-
-/// La tarjeta del modo en línea en la portada, junto a "Jugar solo".
 class TarjetaEnLinea extends StatelessWidget {
   const TarjetaEnLinea({super.key});
 
@@ -122,7 +84,6 @@ class TarjetaEnLinea extends StatelessWidget {
   }
 }
 
-/// Dos jugadores frente a frente: la ilustración del modo en línea.
 class _Duelo extends StatelessWidget {
   const _Duelo();
 
@@ -200,9 +161,6 @@ Future<void> abrirModoEnLinea(BuildContext context) async {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Pantalla raíz
-
 class PantallaEnLinea extends StatelessWidget {
   final Cuenta cuenta;
   final AbrirConexion? abrir;
@@ -249,7 +207,6 @@ class _Contenido extends StatelessWidget {
         estado.conexion != EstadoConexion.expulsado;
     final rival = sala?.rival(context.read<PartidaBloc>().usuario)?.usuario;
 
-    // maybePop respeta la confirmación si hay partida en curso.
     void volverALocal() => Navigator.of(context).maybePop();
 
     return MultiBlocListener(
@@ -337,8 +294,6 @@ void _avisar(BuildContext context, String texto, {bool error = false}) {
     );
 }
 
-/// Confirmación de rendirse: nombra al rival, el botón dice lo que hace y el
-/// foco empieza en "Seguir jugando" para no rendirse por accidente.
 Future<bool> confirmarRendicion(
   BuildContext context, {
   bool saliendo = false,
@@ -373,9 +328,6 @@ Future<bool> confirmarRendicion(
   );
   return respuesta ?? false;
 }
-
-// ---------------------------------------------------------------------------
-// Conexión
 
 class BannerConexion extends StatelessWidget {
   const BannerConexion({super.key});
@@ -484,10 +436,6 @@ class _Expulsado extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Lobby: dos tarjetas con el mismo estilo que la portada, una para crear
-// la sala y otra para unirse con el código.
 
 class Lobby extends StatefulWidget {
   const Lobby({super.key});
@@ -664,7 +612,6 @@ class _PanelLobby extends StatelessWidget {
   final List<Widget> contenido;
   final Widget boton;
 
-  /// Lado a lado las dos tarjetas miden lo mismo y el botón baja al fondo.
   final bool estirar;
 
   const _PanelLobby({
@@ -717,7 +664,6 @@ class _PanelLobby extends StatelessWidget {
   }
 }
 
-/// Los tableros como miniaturas que se tocan para elegir.
 class _SelectorNivel extends StatelessWidget {
   final int elegido;
   final ValueChanged<int> alElegir;
@@ -791,10 +737,6 @@ class _Mayusculas extends TextInputFormatter {
     TextEditingValue ahora,
   ) => ahora.copyWith(text: ahora.text.toUpperCase());
 }
-
-// ---------------------------------------------------------------------------
-// Sala de espera — patrón Detail / Record: nombre, metadatos, acciones y
-// secciones sin tarjetas alrededor.
 
 class SalaDeEspera extends StatelessWidget {
   final SalaEnLinea sala;
@@ -953,10 +895,6 @@ class _FilaJugador extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Partida
-
-/// Los dos jugadores con sus puntos y lo que están haciendo.
 class Marcadores extends StatelessWidget {
   final SalaEnLinea sala;
 
@@ -1117,8 +1055,6 @@ class _TarjetaJugador extends StatelessWidget {
   }
 }
 
-/// Lo que está haciendo un jugador: un punto de color y el texto. El color
-/// nunca va solo, siempre con palabras.
 class _EstadoJugador extends StatelessWidget {
   final JugadorEnLinea jugador;
   final SalaEnLinea sala;
@@ -1247,8 +1183,6 @@ class PartidaEnCurso extends StatefulWidget {
 class _PartidaEnCursoState extends State<PartidaEnCurso> {
   int? _elegido;
 
-  // El servidor manda un estado nuevo con cada cambio. Los dados solo deben
-  // rodar cuando cambia la ronda, no cada vez que llega un mensaje.
   int _ronda = -1;
   Dados? _dados;
 
@@ -1368,9 +1302,6 @@ class _AvisoRival extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Resultado — patrón Detail / Record.
-
 class ResultadoPartida extends StatelessWidget {
   final SalaEnLinea sala;
 
@@ -1478,10 +1409,6 @@ class ResultadoPartida extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Piezas comunes
-
-/// Cuenta hacia atrás desde [segundos] de a un segundo.
 class CuentaRegresiva extends StatefulWidget {
   final int? segundos;
   final Widget Function(int? restantes) builder;
@@ -1534,7 +1461,6 @@ class _CuentaRegresivaState extends State<CuentaRegresiva> {
       RepaintBoundary(child: widget.builder(_restantes));
 }
 
-/// Superficie L1: borde de 1px y filas separadas por líneas finas.
 class _Lista extends StatelessWidget {
   final List<Widget> filas;
 
@@ -1563,8 +1489,6 @@ class _Lista extends StatelessWidget {
   }
 }
 
-/// Acción principal y secundaria: en fila en pantallas anchas, apiladas en
-/// las angostas.
 class _Acciones extends StatelessWidget {
   final Widget principal;
   final Widget secundaria;
@@ -1583,7 +1507,6 @@ class _Acciones extends StatelessWidget {
   }
 }
 
-/// Un estado en línea: ícono pequeño y texto secundario.
 class _Estado extends StatelessWidget {
   final Widget icono;
   final String texto;
@@ -1620,7 +1543,6 @@ class _Girando extends StatelessWidget {
   }
 }
 
-/// Columna de contenido con ancho máximo y margen de 16 px.
 class _Columna extends StatelessWidget {
   final double ancho;
   final bool centrada;

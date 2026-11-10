@@ -50,17 +50,6 @@ class ServidorFalso {
       case 'DELETE /sesion':
         sesiones.remove(token);
         return http.Response('', 204);
-      case 'DELETE /cuenta':
-        final dueno = sesiones[token];
-        if (dueno == null) {
-          return _error(401, 'sin_sesion', 'No hay sesion abierta.');
-        }
-        if (cuentas[dueno] != contrasena) {
-          return _error(403, 'contrasena_mala', 'La contrasena no coincide.');
-        }
-        cuentas.remove(dueno);
-        sesiones.removeWhere((_, u) => u == dueno);
-        return http.Response('', 204);
     }
     return _error(404, 'no_existe', 'Ruta desconocida.');
   }

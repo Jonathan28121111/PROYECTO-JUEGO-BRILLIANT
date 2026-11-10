@@ -27,7 +27,7 @@ void main() {
     };
     expect(resultados.length, greaterThan(1));
   });
-    group('companeroDe', () {
+  group('companeroDe', () {
     test('devuelve el otro valor de la tirada', () {
       const dados = Dados(2, 5);
       expect(dados.companeroDe(2), 5);

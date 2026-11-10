@@ -17,8 +17,6 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
   final _usuario = TextEditingController();
   final _contrasena = TextEditingController();
 
-  /// El error del bloc es compartido con el registro: solo se muestra aquí
-  /// si lo provocó un intento de inicio de sesión desde esta pantalla.
   bool _intento = false;
 
   @override
@@ -37,9 +35,9 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
 
   void _abrirRegistro() {
     setState(() => _intento = false);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const PantallaRegistro()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const PantallaRegistro()));
   }
 
   @override
@@ -85,10 +83,7 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
             ],
           ),
         ),
-        if (error != null) ...[
-          const SizedBox(height: 16),
-          MensajeError(error),
-        ],
+        if (error != null) ...[const SizedBox(height: 16), MensajeError(error)],
         const SizedBox(height: 24),
         if (cargando)
           const SizedBox(
@@ -147,8 +142,6 @@ class _Separador extends StatelessWidget {
 class MenuCuenta extends StatelessWidget {
   const MenuCuenta({super.key});
 
-  static const Color _rojo = Color(0xFFB91C1C);
-
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<SesionBloc>().state;
@@ -174,16 +167,9 @@ class MenuCuenta extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
-        onSelected: (opcion) async {
-          final bloc = context.read<SesionBloc>();
-          switch (opcion) {
-            case 'salir':
-              bloc.add(CerrarSesion());
-            case 'borrar':
-              final contrasena = await pedirContrasena(context);
-              if (contrasena != null) {
-                bloc.add(BorrarCuenta(contrasena));
-              }
+        onSelected: (opcion) {
+          if (opcion == 'salir') {
+            context.read<SesionBloc>().add(CerrarSesion());
           }
         },
         itemBuilder: (_) => [
@@ -230,13 +216,6 @@ class MenuCuenta extends StatelessWidget {
             icono: conCuenta ? Icons.logout_rounded : Icons.login_rounded,
             texto: conCuenta ? 'Cerrar sesión' : 'Iniciar sesión',
           ),
-          if (conCuenta)
-            _opcion(
-              valor: 'borrar',
-              icono: Icons.delete_outline_rounded,
-              texto: 'Borrar cuenta',
-              color: _rojo,
-            ),
         ],
         child: const Padding(
           padding: EdgeInsets.all(4),
@@ -269,69 +248,6 @@ class MenuCuenta extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-Future<String?> pedirContrasena(BuildContext context) => showDialog<String>(
-  context: context,
-  builder: (_) => const DialogoContrasena(),
-);
-
-class DialogoContrasena extends StatefulWidget {
-  const DialogoContrasena({super.key});
-
-  @override
-  State<DialogoContrasena> createState() => _DialogoContrasenaState();
-}
-
-class _DialogoContrasenaState extends State<DialogoContrasena> {
-  final _campo = TextEditingController();
-
-  @override
-  void dispose() {
-    _campo.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      icon: const Icon(
-        Icons.warning_amber_rounded,
-        color: MenuCuenta._rojo,
-        size: 32,
-      ),
-      title: const Text('Borrar cuenta'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Esto no se puede deshacer. Escribe tu contraseña:'),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('campo_confirmar'),
-            controller: _campo,
-            obscureText: true,
-            autofocus: true,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: MenuCuenta._rojo),
-          onPressed: () => Navigator.pop(context, _campo.text),
-          child: const Text('Borrar'),
-        ),
-      ],
     );
   }
 }

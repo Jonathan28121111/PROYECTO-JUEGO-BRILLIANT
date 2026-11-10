@@ -7,15 +7,10 @@ import 'nivel.dart';
 import 'sala_en_linea.dart';
 import 'tablero.dart';
 
-// ---------------------------------------------------------------------------
-// Eventos
-
 sealed class PartidaEvent {}
 
-/// Abre la conexión (o la vuelve a abrir tras una caída).
 class Conectar extends PartidaEvent {}
 
-/// Reintenta ya, sin esperar a que se cumpla la espera.
 class ReintentarAhora extends PartidaEvent {}
 
 class CrearSala extends PartidaEvent {
@@ -28,7 +23,6 @@ class UnirseSala extends PartidaEvent {
   UnirseSala(this.codigo);
 }
 
-/// El jugador volvió a escribir en el campo del código: el error se va.
 class CorregirCodigo extends PartidaEvent {}
 
 class SalirSala extends PartidaEvent {}
@@ -59,12 +53,8 @@ class _ConexionPerdida extends PartidaEvent {
   _ConexionPerdida(this.conexion);
 }
 
-// ---------------------------------------------------------------------------
-// Estado
-
 enum EstadoConexion { conectando, conectado, reconectando, expulsado }
 
-/// Una jugada que ya se ve en el tablero pero el servidor no ha confirmado.
 class JugadaPendiente {
   final int ronda;
   final int fila;
@@ -103,19 +93,15 @@ class PartidaState {
   final bool anclasEnviadas;
   final JugadaPendiente? pendiente;
 
-  /// Intentos de reconexión seguidos que han fallado.
   final int intentos;
   final int? segundosParaReintentar;
 
-  /// Un aviso para mostrar una vez. [numeroAviso] cambia con cada uno.
   final String? aviso;
   final bool avisoEsError;
   final int numeroAviso;
 
-  /// Por qué el servidor nos sacó (otra ventana, sesión vencida...).
   final String? motivoExpulsion;
 
-  /// Por qué no se pudo entrar con el código. Va debajo del campo.
   final String? errorCodigo;
 
   const PartidaState({
@@ -135,7 +121,6 @@ class PartidaState {
 
   bool get conectado => conexion == EstadoConexion.conectado;
 
-  /// Las casillas propias que hay que dibujar, contando la jugada pendiente.
   Map<(int, int), int> get casillas {
     final sala = this.sala;
     if (sala == null) return const {};
@@ -187,15 +172,11 @@ class PartidaState {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Bloc
-
 class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
   final String usuario;
   final String token;
   final AbrirConexion abrir;
 
-  /// Cuánto esperar antes de cada reintento; el último se repite.
   final List<Duration> esperas;
 
   ConexionJuego? _conexion;
@@ -223,8 +204,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     on<ReintentarAhora>((_, emit) {
       if (state.conexion == EstadoConexion.conectado) return;
       if (state.conexion == EstadoConexion.expulsado) {
-        // "Jugar en esta ventana": se vuelve a conectar y el servidor
-        // desplaza a la otra.
         emit(PartidaState(sala: state.sala, numeroAviso: state.numeroAviso));
       }
       _reintento?.cancel();
@@ -259,8 +238,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     on<ColocarNumero>(_alColocar);
     on<Rendirse>((_, emit) => _pedir(emit, {'tipo': 'rendirse'}));
   }
-
-  // -- Conexión ------------------------------------------------------------
 
   Future<void> _alConectar(Conectar _, Emitter<PartidaState> emit) async {
     if (_cerrando || state.conexion == EstadoConexion.expulsado) return;
@@ -305,7 +282,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     _suscripcion = null;
     if (_cerrando || state.conexion == EstadoConexion.expulsado) return;
     if (state.pendiente != null) _reenviarAlVolver = true;
-    // Un "pasar" que se mandó justo antes de la caída pudo perderse.
     _rondaPasada = null;
     _programarReintento(emit);
   }
@@ -327,9 +303,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     });
   }
 
-  /// Suelta la conexión actual sin esperar a que termine de cerrarse: con la
-  /// red caída el cierre de un WebSocket puede tardar mucho y no debe frenar
-  /// la reconexión.
   void _soltarConexion() {
     final suscripcion = _suscripcion;
     final vieja = _conexion;
@@ -338,8 +311,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     unawaited(suscripcion?.cancel());
     unawaited(vieja?.cerrar());
   }
-
-  // -- Mensajes del servidor -----------------------------------------------
 
   void _alRecibir(_MensajeRecibido e, Emitter<PartidaState> emit) {
     final m = e.mensaje;
@@ -413,7 +384,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         }
         var nuevo = state;
         if (clave == 'ya_jugaste' || clave == 'ronda_equivocada') {
-          // La jugada no cuenta: el tablero vuelve a lo que dice el servidor.
           nuevo = nuevo.copyWith(pendiente: () => null);
         }
         if (clave == 'anclas_invalidas' || clave == 'fase_equivocada') {
@@ -465,7 +435,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     _quizaPasar(emit);
   }
 
-  /// Si con los dados de la ronda no hay dónde escribir, se pasa solo.
   void _quizaPasar(Emitter<PartidaState> emit) {
     final sala = state.sala;
     final dados = sala?.dados;
@@ -503,8 +472,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     );
     _soltarConexion();
   }
-
-  // -- Acciones del jugador ------------------------------------------------
 
   void _pedir(Emitter<PartidaState> emit, Map<String, Object?> mensaje) {
     if (!state.conectado) {
@@ -587,7 +554,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     if (state.conectado) {
       _conexion?.enviar(jugada.mensaje);
     } else {
-      // Se manda en cuanto vuelva la conexión.
       _reenviarAlVolver = true;
     }
   }

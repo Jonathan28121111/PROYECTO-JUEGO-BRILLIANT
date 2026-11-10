@@ -9,14 +9,14 @@ import 'ayudas_interfaz.dart';
 
 void main() {
   Tablero tresColores() => Tablero(
-        [
-          [1, 2, 3],
-        ],
-        {1: Tipo.rojo, 2: Tipo.azul, 3: Tipo.verde},
-        [
-          [null, null, null],
-        ],
-      );
+    [
+      [1, 2, 3],
+    ],
+    {1: Tipo.rojo, 2: Tipo.azul, 3: Tipo.verde},
+    [
+      [null, null, null],
+    ],
+  );
 
   Future<void> montarTablero(
     WidgetTester tester, {
@@ -30,30 +30,33 @@ void main() {
     void Function((int, int))? alTocar,
   }) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(
-      Center(
-        child: SizedBox(
-          width: 600,
-          height: 600,
-          child: TableroInterfaz(
-            tablero: tablero,
-            anclas: anclas,
-            numeros: numeros,
-            posibles: posibles,
-            arrastrando: arrastrando,
-            alSoltar: alSoltar ?? (_, _) {},
-            alQuitar: alQuitar ?? (_) {},
-            alTocar: alTocar,
+    await tester.pumpWidget(
+      montar(
+        Center(
+          child: SizedBox(
+            width: 600,
+            height: 600,
+            child: TableroInterfaz(
+              tablero: tablero,
+              anclas: anclas,
+              numeros: numeros,
+              posibles: posibles,
+              arrastrando: arrastrando,
+              alSoltar: alSoltar ?? (_, _) {},
+              alQuitar: alQuitar ?? (_) {},
+              alTocar: alTocar,
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
   group('la rejilla', () {
-    testWidgets('dibuja una casilla por cada celda del tablero',
-        (tester) async {
+    testWidgets('dibuja una casilla por cada celda del tablero', (
+      tester,
+    ) async {
       await montarTablero(tester, tablero: tresColores());
 
       expect(
@@ -65,8 +68,9 @@ void main() {
       );
     });
 
-    testWidgets('el tablero del nivel 1 dibuja las 49 casillas',
-        (tester) async {
+    testWidgets('el tablero del nivel 1 dibuja las 49 casillas', (
+      tester,
+    ) async {
       await montarTablero(tester, tablero: Tablero.nivel1Inicial());
 
       expect(
@@ -95,7 +99,6 @@ void main() {
     testWidgets('cada casilla se pinta del color de su zona', (tester) async {
       await montarTablero(tester, tablero: tresColores());
 
-      // Una casilla de cada color, ni más ni menos.
       for (final tipo in [Tipo.rojo, Tipo.azul, Tipo.verde]) {
         expect(
           find.byWidgetPredicate(
@@ -180,8 +183,9 @@ void main() {
   });
 
   group('los toques', () {
-    testWidgets('tocar una casilla posible avisa con sus coordenadas',
-        (tester) async {
+    testWidgets('tocar una casilla posible avisa con sus coordenadas', (
+      tester,
+    ) async {
       (int, int)? tocada;
 
       await montarTablero(
@@ -248,42 +252,45 @@ void main() {
   });
 
   group('soltar una ficha', () {
-    testWidgets('el ancla avisa que celda y que numero recibio',
-        (tester) async {
+    testWidgets('el ancla avisa que celda y que numero recibio', (
+      tester,
+    ) async {
       (int, int)? celdaRecibida;
       int? numeroRecibido;
 
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Column(
-          children: [
-            Draggable<int>(
-              data: 5,
-              feedback: const SizedBox(width: 40, height: 40),
-              child: const SizedBox(width: 40, height: 40, child: Text('5')),
-            ),
-            Expanded(
-              child: Center(
-                child: SizedBox(
-                  width: 600,
-                  height: 600,
-                  child: TableroInterfaz(
-                    tablero: tresColores(),
-                    anclas: const [(0, 2)],
-                    numeros: const {},
-                    arrastrando: true,
-                    alSoltar: (celda, numero) {
-                      celdaRecibida = celda;
-                      numeroRecibido = numero;
-                    },
-                    alQuitar: (_) {},
+      await tester.pumpWidget(
+        montar(
+          Column(
+            children: [
+              Draggable<int>(
+                data: 5,
+                feedback: const SizedBox(width: 40, height: 40),
+                child: const SizedBox(width: 40, height: 40, child: Text('5')),
+              ),
+              Expanded(
+                child: Center(
+                  child: SizedBox(
+                    width: 600,
+                    height: 600,
+                    child: TableroInterfaz(
+                      tablero: tresColores(),
+                      anclas: const [(0, 2)],
+                      numeros: const {},
+                      arrastrando: true,
+                      alSoltar: (celda, numero) {
+                        celdaRecibida = celda;
+                        numeroRecibido = numero;
+                      },
+                      alQuitar: (_) {},
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       final gesto = await tester.startGesture(

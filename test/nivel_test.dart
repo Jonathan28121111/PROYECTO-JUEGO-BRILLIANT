@@ -54,8 +54,11 @@ void main() {
         for (final fila in nivel.zonasPorCelda) {
           for (final id in fila) {
             if (id == hueco) continue;
-            expect(nivel.coloresPorZona.containsKey(id), true,
-                reason: 'nivel ${nivel.numero}: la zona $id no tiene color');
+            expect(
+              nivel.coloresPorZona.containsKey(id),
+              true,
+              reason: 'nivel ${nivel.numero}: la zona $id no tiene color',
+            );
           }
         }
       }
@@ -63,18 +66,20 @@ void main() {
 
     test('no se declaran zonas que no aparecen en el tablero', () {
       for (final nivel in nivelesOficiales) {
-        final enElTablero = {
-          for (final fila in nivel.zonasPorCelda) ...fila,
-        }..remove(hueco);
-        expect(nivel.coloresPorZona.keys.toSet(), enElTablero,
-            reason: 'nivel ${nivel.numero}');
+        final enElTablero = {for (final fila in nivel.zonasPorCelda) ...fila}
+          ..remove(hueco);
+        expect(
+          nivel.coloresPorZona.keys.toSet(),
+          enElTablero,
+          reason: 'nivel ${nivel.numero}',
+        );
       }
     });
 
     test('las 49 casillas estan repartidas entre las zonas', () {
       for (final nivel in nivelesOficiales) {
-        final total =
-            celdasPorZona(nivel).values.fold(0, (suma, n) => suma + n);
+        final total = celdasPorZona(nivel).values
+            .fold(0, (suma, n) => suma + n);
         expect(total, 49, reason: 'nivel ${nivel.numero}');
       }
     });
@@ -82,8 +87,11 @@ void main() {
     test('ninguna zona queda de una sola casilla', () {
       for (final nivel in nivelesOficiales) {
         celdasPorZona(nivel).forEach((id, cuantas) {
-          expect(cuantas, greaterThan(1),
-              reason: 'nivel ${nivel.numero}: la zona $id tiene $cuantas');
+          expect(
+            cuantas,
+            greaterThan(1),
+            reason: 'nivel ${nivel.numero}: la zona $id tiene $cuantas',
+          );
         });
       }
     });
@@ -93,8 +101,11 @@ void main() {
         final cuenta = celdasPorZona(nivel);
         nivel.coloresPorZona.forEach((id, tipo) {
           if (tipo != Tipo.rojo && tipo != Tipo.amarillo) return;
-          expect(cuenta[id], lessThanOrEqualTo(6),
-              reason: 'nivel ${nivel.numero}: la zona $id es de ${cuenta[id]}');
+          expect(
+            cuenta[id],
+            lessThanOrEqualTo(6),
+            reason: 'nivel ${nivel.numero}: la zona $id es de ${cuenta[id]}',
+          );
         });
       }
     });
@@ -118,8 +129,11 @@ void main() {
 
     test('no se repiten', () {
       for (final nivel in nivelesOficiales) {
-        expect(nivel.anclas.toSet(), hasLength(nivel.anclas.length),
-            reason: 'nivel ${nivel.numero}');
+        expect(
+          nivel.anclas.toSet(),
+          hasLength(nivel.anclas.length),
+          reason: 'nivel ${nivel.numero}',
+        );
       }
     });
 
@@ -129,8 +143,11 @@ void main() {
           for (final (fila, columna) in nivel.anclas)
             nivel.zonasPorCelda[fila][columna],
         ];
-        expect(zonas.toSet(), hasLength(6),
-            reason: 'nivel ${nivel.numero}: dos anclas en la misma zona');
+        expect(
+          zonas.toSet(),
+          hasLength(6),
+          reason: 'nivel ${nivel.numero}: dos anclas en la misma zona',
+        );
       }
     });
   });
@@ -139,8 +156,11 @@ void main() {
     test('cada nivel declara los puntos de todos sus tipos', () {
       for (final nivel in nivelesOficiales) {
         for (final tipo in nivel.tiposUsados) {
-          expect(nivel.puntos[tipo], isNotNull,
-              reason: 'nivel ${nivel.numero}: falta $tipo');
+          expect(
+            nivel.puntos[tipo],
+            isNotNull,
+            reason: 'nivel ${nivel.numero}: falta $tipo',
+          );
           expect(nivel.puntos[tipo], hasLength(3));
         }
       }
@@ -269,14 +289,14 @@ void main() {
 
   group('los huecos', () {
     Tablero conHueco() => Tablero(
-          [
-            [1, hueco, 1],
-          ],
-          {1: Tipo.verde},
-          [
-            [2, null, null],
-          ],
-        );
+      [
+        [1, hueco, 1],
+      ],
+      {1: Tipo.verde},
+      [
+        [2, null, null],
+      ],
+    );
 
     test('esHueco distingue la casilla sin zona', () {
       final tablero = conHueco();
@@ -298,8 +318,7 @@ void main() {
     test('ninguna carta oficial trae huecos', () {
       for (final nivel in nivelesOficiales) {
         for (final fila in nivel.zonasPorCelda) {
-          expect(fila, isNot(contains(hueco)),
-              reason: 'nivel ${nivel.numero}');
+          expect(fila, isNot(contains(hueco)), reason: 'nivel ${nivel.numero}');
         }
       }
     });

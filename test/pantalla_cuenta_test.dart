@@ -172,40 +172,4 @@ void main() {
     expect(find.byType(PantallaCuenta), findsOneWidget);
     expect(servidor.rutas, contains('DELETE /sesion'));
   });
-
-  testWidgets('borrar la cuenta pide la contrasena', (tester) async {
-    await abrir(tester);
-    await crearCuenta(tester, 'jonathan', 'contrasena123');
-
-    await tester.tap(find.byKey(const Key('menu_cuenta')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Borrar cuenta'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('campo_confirmar')),
-      'contrasena123',
-    );
-    await tester.tap(find.text('Borrar'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(PantallaCuenta), findsOneWidget);
-    expect(servidor.cuentas, isEmpty);
-  });
-
-  testWidgets('borrar con la contrasena mala avisa y no sale', (tester) async {
-    await abrir(tester);
-    await crearCuenta(tester, 'jonathan', 'contrasena123');
-
-    await tester.tap(find.byKey(const Key('menu_cuenta')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Borrar cuenta'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('campo_confirmar')), 'mala');
-    await tester.tap(find.text('Borrar'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(PantallaNiveles), findsOneWidget);
-    expect(find.text('La contrasena no coincide.'), findsOneWidget);
-    expect(servidor.cuentas, contains('jonathan'));
-  });
 }

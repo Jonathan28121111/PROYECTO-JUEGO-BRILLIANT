@@ -16,8 +16,6 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
   final _contrasena = TextEditingController();
   final _confirmar = TextEditingController();
 
-  /// Solo se muestran los errores del bloc que vengan de un registro hecho
-  /// desde esta pantalla, no los que quedaron del inicio de sesión.
   bool _intento = false;
   String? _errorLocal;
 
@@ -54,7 +52,6 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
         _errorLocal ?? (_intento && estado is SinSesion ? estado.error : null);
 
     return BlocListener<SesionBloc, SesionState>(
-      // Con la cuenta creada, la app de abajo ya cambió al juego.
       listenWhen: (_, ahora) => ahora is ConCuenta,
       listener: (context, _) => Navigator.of(context).pop(),
       child: MarcoAcceso(
@@ -75,7 +72,8 @@ class _PantallaRegistroState extends State<PantallaRegistro> {
           ),
         ),
         titulo: 'Crea tu cuenta',
-        subtitulo: 'Elige un usuario y una contraseña para guardar tu progreso.',
+        subtitulo:
+            'Elige un usuario y una contraseña para guardar tu progreso.',
         children: [
           AutofillGroup(
             child: Column(

@@ -65,8 +65,11 @@ void main() {
 
     test('el texto nunca sale del mismo color que el fondo', () {
       for (final tipo in Tipo.values) {
-        expect(colorTextoSobre(colorDe(tipo)), isNot(colorDe(tipo)),
-            reason: '$tipo quedaria ilegible');
+        expect(
+          colorTextoSobre(colorDe(tipo)),
+          isNot(colorDe(tipo)),
+          reason: '$tipo quedaria ilegible',
+        );
       }
     });
   });

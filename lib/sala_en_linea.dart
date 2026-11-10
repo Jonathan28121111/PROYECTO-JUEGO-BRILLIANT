@@ -14,7 +14,6 @@ class JugadorEnLinea {
   final bool jugoRonda;
   final bool terminado;
 
-  /// Segundos que le quedan para volver si está desconectado.
   final int? segundosGracia;
 
   const JugadorEnLinea({
@@ -47,7 +46,6 @@ class ResultadoEnLinea {
   const ResultadoEnLinea({required this.ganador, required this.motivo});
 }
 
-/// Lo que el servidor cuenta de una sala, visto por uno de sus jugadores.
 class SalaEnLinea {
   final String codigo;
   final int nivel;
@@ -58,7 +56,6 @@ class SalaEnLinea {
   final int? segundosRonda;
   final List<JugadorEnLinea> jugadores;
 
-  /// Las casillas que puso este jugador: sus anclas y sus jugadas.
   final Map<(int, int), int> mias;
   final ResultadoEnLinea? resultado;
 
@@ -124,7 +121,6 @@ class SalaEnLinea {
   }
 }
 
-/// El tablero del nivel con las casillas ya puestas.
 Tablero tableroCon(Nivel nivel, Map<(int, int), int> casillas) {
   final tablero = Tablero.deNivel(nivel);
   casillas.forEach((celda, numero) {
@@ -137,19 +133,14 @@ Tablero tableroCon(Nivel nivel, Map<(int, int), int> casillas) {
   return tablero;
 }
 
-/// Los puntajes de cada zona en orden de llegada (`{"1": [8, 6, 4]}`): el
-/// servidor da el primero a quien completa la zona antes que su rival.
 Map<String, List<int>> tablaDePuntos(Nivel nivel) => {
   for (final zona in Tablero.deNivel(nivel).zonas()) '${zona.id}': zona.puntos,
 };
 
-/// Las zonas completas y válidas del tablero, para que el servidor sepa en
-/// qué ronda se completó cada una.
 List<int> zonasCompletas(Tablero tablero) => [
   for (final zona in tablero.zonasCompletas()) zona.id,
 ];
 
-/// Si con esos dados hay alguna casilla donde escribir.
 bool hayJugadaCon(Tablero tablero, Dados dados) =>
     tablero.celdasPosibles(dados.primero, dados.segundo).isNotEmpty ||
     tablero.celdasPosibles(dados.segundo, dados.primero).isNotEmpty;

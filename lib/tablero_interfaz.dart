@@ -34,13 +34,9 @@ class TableroInterfaz extends StatelessWidget {
     final tocar = alTocar;
     final acepta = aceptaFicha;
 
-    // Conjuntos: cada casilla pregunta si es ancla o posible, y así no se
-    // recorre la lista 49 veces.
     final anclas = this.anclas.toSet();
     final posibles = this.posibles.toSet();
 
-    // Capa de pintura propia: que ruede un dado o corra el reloj no obliga a
-    // repintar el tablero.
     return RepaintBoundary(
       child: AspectRatio(
         aspectRatio: 1,

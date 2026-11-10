@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 const Color azulAvatar = Color(0xFF26A9E0);
 
-/// Círculo de color con la silueta de una persona en línea blanca.
 class AvatarUsuario extends StatelessWidget {
   final double tamano;
   final Color color;
@@ -40,7 +39,6 @@ class _PintorAvatar extends CustomPainter {
       Path()..addOval(Rect.fromCircle(center: centro, radius: lado / 2)),
     );
 
-    // Hombros: un rectángulo redondeado que se corta con el borde del círculo.
     final izquierda = lado * 0.18;
     final derecha = lado * 0.82;
     final arriba = lado * 0.585;
@@ -60,7 +58,6 @@ class _PintorAvatar extends CustomPainter {
       ..lineTo(derecha, lado * 1.1);
     canvas.drawPath(cuerpo, linea);
 
-    // Cabeza: se borra la línea de los hombros detrás para dejar el hueco.
     final cabeza = Offset(lado / 2, lado * 0.36);
     final radioCabeza = lado * 0.2;
     canvas.drawCircle(cabeza, radioCabeza + lado * 0.04, fondo);

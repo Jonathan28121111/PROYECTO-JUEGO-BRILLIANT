@@ -18,22 +18,15 @@ class VistaJuego extends StatelessWidget {
   final bool resuelto;
   final Nivel nivel;
 
-  /// Por defecto las acciones van al [TableroBloc]. En línea las recibe la
-  /// partida, que es la que habla con el servidor.
   final void Function(int numero)? alElegir;
   final void Function(int fila, int columna)? alColocar;
 
-  /// En línea los dados los tira el servidor: no hay botón.
   final bool conBotonTirar;
 
-  /// Si se pueden tocar los dados (en línea, no después de haber jugado).
   final bool dadosActivos;
 
-  /// Reemplaza el texto de ayuda de abajo.
   final String? instruccion;
 
-  /// Los puntos a mostrar. En línea los da el servidor, que sabe quién
-  /// completó cada zona primero; solo se calculan con el tablero.
   final int? puntos;
 
   const VistaJuego({
@@ -68,9 +61,11 @@ class VistaJuego extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tirada = dados;
-    final elegir = alElegir ??
+    final elegir =
+        alElegir ??
         (int n) => context.read<TableroBloc>().add(NumeroElegido(n));
-    final colocar = alColocar ??
+    final colocar =
+        alColocar ??
         (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
 
     final numeros = <(int, int), int>{};
@@ -85,8 +80,9 @@ class VistaJuego extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, restricciones) {
-        final altoTablero =
-            (restricciones.maxHeight - 250).clamp(220.0, 600.0).toDouble();
+        final altoTablero = (restricciones.maxHeight - 250)
+            .clamp(220.0, 600.0)
+            .toDouble();
 
         final interfaz = TableroInterfaz(
           tablero: tablero,
@@ -100,8 +96,6 @@ class VistaJuego extends StatelessWidget {
         );
         final (izquierda, derecha) = reglasDe(nivel);
 
-        // En pantallas angostas los paneles a los lados dejaban el tablero
-        // diminuto: el tablero va a todo lo ancho y las reglas debajo.
         final angosta = restricciones.maxWidth < 600;
 
         return SingleChildScrollView(
@@ -114,32 +108,28 @@ class VistaJuego extends StatelessWidget {
                   child: interfaz,
                 ),
               ] else
-              SizedBox(
-                height: altoTablero,
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: PanelReglas(
-                    reglas: izquierda,
-                    puntos: nivel.puntos,
-                  ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: interfaz,
+                SizedBox(
+                  height: altoTablero,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 140,
+                        child: PanelReglas(
+                          reglas: izquierda,
+                          puntos: nivel.puntos,
+                        ),
                       ),
-                    ),
-                    SizedBox(
-                      width: 140,
-                      child: PanelReglas(
-                    reglas: derecha,
-                    puntos: nivel.puntos,
+                      Expanded(child: Center(child: interfaz)),
+                      SizedBox(
+                        width: 140,
+                        child: PanelReglas(
+                          reglas: derecha,
+                          puntos: nivel.puntos,
+                        ),
+                      ),
+                    ],
                   ),
-                    ),
-                  ],
                 ),
-              ),
               const SizedBox(height: 14),
               _Marcador(puntos: puntos ?? tablero.puntos),
               const SizedBox(height: 14),
@@ -168,24 +158,27 @@ class VistaJuego extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              if (conBotonTirar) FilledButton(
-                onPressed: (resuelto || !puedeTirar)
-                    ? null
-                    : () => context.read<TableroBloc>().add(DadosTirados()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF43A047),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: const BorderSide(color: Colors.black, width: 2),
+              if (conBotonTirar)
+                FilledButton(
+                  onPressed: (resuelto || !puedeTirar)
+                      ? null
+                      : () => context.read<TableroBloc>().add(DadosTirados()),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF43A047),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Colors.black, width: 2),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tirar los dados',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
-                child: const Text(
-                  'Tirar los dados',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
               const SizedBox(height: 8),
               Text(
                 _instruccion,
@@ -209,10 +202,7 @@ class VistaJuego extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: PanelReglas(
-                        reglas: derecha,
-                        puntos: nivel.puntos,
-                      ),
+                      child: PanelReglas(reglas: derecha, puntos: nivel.puntos),
                     ),
                   ],
                 ),

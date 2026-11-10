@@ -162,7 +162,6 @@ void main() {
     test('rechaza una casilla que no toca al numero companero', () async {
       final bloc = await listoParaJugar(Tipo.verde, [3, 2]);
 
-      // (0,2) solo toca a (0,1), que está vacía: no hay ningún 2 al lado.
       bloc.add(NumeroColocado(0, 2));
       await procesar();
 
@@ -183,7 +182,6 @@ void main() {
     });
 
     test('rechaza un numero que rompe la regla de la zona', () async {
-      // Zona roja: todos distintos, y el 2 ya está en el tablero.
       final bloc = await listoParaJugar(Tipo.rojo, [2, 2]);
 
       bloc.add(NumeroColocado(0, 1));
@@ -245,7 +243,6 @@ void main() {
     });
 
     test('deja tirar de nuevo si no hay ninguna jugada', () async {
-      // El tablero solo tiene un 2: con 5 y 6 no se puede escribir nada.
       final bloc = TableroBloc(azar: AzarFijo([5, 6]));
       bloc.add(ValoresInicialesProporcionados(tableroDePrueba(Tipo.verde)));
       await procesar();

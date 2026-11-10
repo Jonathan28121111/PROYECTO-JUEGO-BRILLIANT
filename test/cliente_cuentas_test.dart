@@ -64,31 +64,28 @@ void main() {
     expect(servidor.sesiones, isNot(contains(cuenta.token)));
   });
 
-  test('borrar cuenta manda el token y la contrasena', () async {
-    final cuenta = await cliente.registrar('jonathan', 'contrasena123');
-
-    await cliente.borrarCuenta(cuenta.token, 'contrasena123');
-
-    expect(servidor.cuentas, isEmpty);
-  });
-
   test('manda JSON con las cabeceras correctas', () async {
     late http.Request vista;
     final espia = ClienteCuentas(
       base: Uri.parse('http://servidor.falso'),
       cliente: MockClient((peticion) async {
         vista = peticion;
-        return http.Response('', 204);
+        return http.Response(
+          jsonEncode({'usuario': 'ana', 'token': 'abc'}),
+          200,
+        );
       }),
     );
 
-    await espia.borrarCuenta('abc', 'contrasena123');
+    await espia.iniciarSesion('ana', 'contrasena123');
 
-    expect(vista.url.toString(), 'http://servidor.falso/cuenta');
-    expect(vista.method, 'DELETE');
-    expect(vista.headers['authorization'], 'Bearer abc');
+    expect(vista.url.toString(), 'http://servidor.falso/sesion');
+    expect(vista.method, 'POST');
     expect(vista.headers['content-type'], startsWith('application/json'));
-    expect(jsonDecode(vista.body), {'contrasena': 'contrasena123'});
+    expect(jsonDecode(vista.body), {
+      'usuario': 'ana',
+      'contrasena': 'contrasena123',
+    });
   });
 
   test('una respuesta de error sin JSON no revienta', () async {

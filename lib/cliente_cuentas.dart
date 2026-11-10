@@ -47,15 +47,6 @@ class ClienteCuentas {
     await _pedir('DELETE', '/sesion', token: token);
   }
 
-  Future<void> borrarCuenta(String token, String contrasena) async {
-    await _pedir(
-      'DELETE',
-      '/cuenta',
-      token: token,
-      cuerpo: {'contrasena': contrasena},
-    );
-  }
-
   void cerrar() => _http.close();
 
   Future<Cuenta> _entrar(String ruta, String usuario, String contrasena) async {

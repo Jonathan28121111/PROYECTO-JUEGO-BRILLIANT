@@ -14,8 +14,6 @@ const Color verdeTexto = Color(0xFF1B3D1E);
 class PantallaAnclas extends StatefulWidget {
   final Nivel nivel;
 
-  /// Qué hacer con el tablero ya anclado. Por defecto empieza la partida
-  /// local en el [TableroBloc]; en línea se le manda al servidor.
   final void Function(Tablero tablero)? alTerminar;
 
   const PantallaAnclas({super.key, this.nivel = nivel1, this.alTerminar});
@@ -132,9 +130,9 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                     if (terminar != null) {
                       terminar(listo);
                     } else {
-                      context
-                          .read<TableroBloc>()
-                          .add(ValoresInicialesProporcionados(listo));
+                      context.read<TableroBloc>().add(
+                        ValoresInicialesProporcionados(listo),
+                      );
                     }
                   }
                 : null,

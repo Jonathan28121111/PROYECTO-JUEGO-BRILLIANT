@@ -22,12 +22,6 @@ class JugarSinCuenta extends SesionEvent {}
 
 class CerrarSesion extends SesionEvent {}
 
-class BorrarCuenta extends SesionEvent {
-  final String contrasena;
-
-  BorrarCuenta(this.contrasena);
-}
-
 sealed class SesionState {
   const SesionState();
 }
@@ -65,7 +59,6 @@ class SesionBloc extends Bloc<SesionEvent, SesionState> {
     );
     on<JugarSinCuenta>((_, emit) => emit(const Invitado()));
     on<CerrarSesion>(_alCerrarSesion);
-    on<BorrarCuenta>(_alBorrarCuenta);
   }
 
   Future<void> _entrar(
@@ -88,29 +81,10 @@ class SesionBloc extends Bloc<SesionEvent, SesionState> {
     Emitter<SesionState> emit,
   ) async {
     if (state case ConCuenta(:final cuenta)) {
-      try {
-        await cliente.cerrarSesion(cuenta.token);
-      } on ErrorCuenta {
-        // Si el servidor no contesta, la sesion caduca sola.
-      }
+      await cliente
+          .cerrarSesion(cuenta.token)
+          .catchError((_) {}, test: (error) => error is ErrorCuenta);
     }
     emit(const SinSesion());
-  }
-
-  Future<void> _alBorrarCuenta(
-    BorrarCuenta evento,
-    Emitter<SesionState> emit,
-  ) async {
-    final actual = state;
-    if (actual is! ConCuenta || actual.cargando) {
-      return;
-    }
-    emit(ConCuenta(actual.cuenta, cargando: true));
-    try {
-      await cliente.borrarCuenta(actual.cuenta.token, evento.contrasena);
-      emit(const SinSesion());
-    } on ErrorCuenta catch (error) {
-      emit(ConCuenta(actual.cuenta, error: error.mensaje));
-    }
   }
 }

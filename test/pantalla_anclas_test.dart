@@ -13,10 +13,12 @@ void main() {
     Nivel nivel = nivel1,
   }) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(
-      PantallaAnclas(key: ValueKey(nivel.numero), nivel: nivel),
-      bloc: bloc,
-    ));
+    await tester.pumpWidget(
+      montar(
+        PantallaAnclas(key: ValueKey(nivel.numero), nivel: nivel),
+        bloc: bloc,
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -53,8 +55,9 @@ void main() {
   });
 
   group('soltar una ficha', () {
-    testWidgets('el numero aparece en la casilla donde lo solte',
-        (tester) async {
+    testWidgets('el numero aparece en la casilla donde lo solte', (
+      tester,
+    ) async {
       await abrir(tester);
 
       await arrastrarFicha(tester, 3, 0, 2);
@@ -81,8 +84,9 @@ void main() {
       expect(find.text('2 de 6 colocados'), findsOneWidget);
     });
 
-    testWidgets('soltar en una casilla que no es ancla no hace nada',
-        (tester) async {
+    testWidgets('soltar en una casilla que no es ancla no hace nada', (
+      tester,
+    ) async {
       await abrir(tester);
 
       await arrastrarFicha(tester, 4, 0, 0);
@@ -94,8 +98,9 @@ void main() {
   });
 
   group('corregir lo que ya puse', () {
-    testWidgets('tocar un numero puesto lo quita y lo regresa a la bandeja',
-        (tester) async {
+    testWidgets('tocar un numero puesto lo quita y lo regresa a la bandeja', (
+      tester,
+    ) async {
       await abrir(tester);
       await arrastrarFicha(tester, 3, 0, 2);
       expect(enElTablero('3'), findsOneWidget);
@@ -108,8 +113,9 @@ void main() {
       expect(find.text('0 de 6 colocados'), findsOneWidget);
     });
 
-    testWidgets('soltar otro numero en la misma ancla lo reemplaza',
-        (tester) async {
+    testWidgets('soltar otro numero en la misma ancla lo reemplaza', (
+      tester,
+    ) async {
       await abrir(tester);
 
       await arrastrarFicha(tester, 3, 0, 2);
@@ -150,8 +156,9 @@ void main() {
       expect(find.text('6 de 6 colocados'), findsNothing);
     });
 
-    testWidgets('al tocarlo le manda los valores iniciales al bloc',
-        (tester) async {
+    testWidgets('al tocarlo le manda los valores iniciales al bloc', (
+      tester,
+    ) async {
       final bloc = TableroBloc();
       addTearDown(bloc.close);
 
@@ -215,8 +222,9 @@ void main() {
     const anclaArriba = (0, 4);
     const anclaAbajo = (6, 1);
 
-    testWidgets('rechaza un 3 en la zona que solo toma del 4 al 6',
-        (tester) async {
+    testWidgets('rechaza un 3 en la zona que solo toma del 4 al 6', (
+      tester,
+    ) async {
       await abrir(tester, nivel: nivel4);
 
       await arrastrarFicha(tester, 3, anclaArriba.$1, anclaArriba.$2);
@@ -235,8 +243,9 @@ void main() {
       expect(find.text('1 de 6 colocados'), findsOneWidget);
     });
 
-    testWidgets('rechaza un 6 en la zona que solo toma del 1 al 3',
-        (tester) async {
+    testWidgets('rechaza un 6 en la zona que solo toma del 1 al 3', (
+      tester,
+    ) async {
       await abrir(tester, nivel: nivel4);
 
       await arrastrarFicha(tester, 6, anclaAbajo.$1, anclaAbajo.$2);
@@ -262,8 +271,11 @@ void main() {
         final ancla = nivel.anclas.first;
         await arrastrarFicha(tester, 3, ancla.$1, ancla.$2);
 
-        expect(enElTablero('3'), findsOneWidget,
-            reason: 'el nivel ${nivel.numero} rechazo un 3');
+        expect(
+          enElTablero('3'),
+          findsOneWidget,
+          reason: 'el nivel ${nivel.numero} rechazo un 3',
+        );
       }
     });
 
@@ -271,8 +283,11 @@ void main() {
       for (final nivel in nivelesOficiales) {
         await abrir(tester, nivel: nivel);
 
-        expect(find.byIcon(Icons.star), findsNWidgets(6),
-            reason: 'nivel ${nivel.numero}');
+        expect(
+          find.byIcon(Icons.star),
+          findsNWidgets(6),
+          reason: 'nivel ${nivel.numero}',
+        );
       }
     });
   });

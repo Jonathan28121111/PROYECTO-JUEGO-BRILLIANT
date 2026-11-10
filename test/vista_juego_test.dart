@@ -24,17 +24,19 @@ void main() {
     TableroBloc? bloc,
   }) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(
-      VistaJuego(
-        tablero: tablero ?? Tablero.nivel1Inicial(),
-        dados: dados,
-        elegido: elegido,
-        posibles: posibles,
-        puedeTirar: puedeTirar,
-        resuelto: resuelto,
+    await tester.pumpWidget(
+      montar(
+        VistaJuego(
+          tablero: tablero ?? Tablero.nivel1Inicial(),
+          dados: dados,
+          elegido: elegido,
+          posibles: posibles,
+          puedeTirar: puedeTirar,
+          resuelto: resuelto,
+        ),
+        bloc: bloc,
       ),
-      bloc: bloc,
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
@@ -54,15 +56,14 @@ void main() {
     testWidgets('si se puede volver a tirar lo dice', (tester) async {
       await montarVista(tester, dados: const Dados(5, 6), puedeTirar: true);
 
-      expect(find.text('No hay ninguna jugada: vuelve a tirar'), findsOneWidget);
+      expect(
+        find.text('No hay ninguna jugada: vuelve a tirar'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('con tirada y sin elegir pide elegir', (tester) async {
-      await montarVista(
-        tester,
-        dados: const Dados(3, 2),
-        puedeTirar: false,
-      );
+      await montarVista(tester, dados: const Dados(3, 2), puedeTirar: false);
 
       expect(
         find.text('Elige cuál de los dos números vas a escribir'),
@@ -70,8 +71,9 @@ void main() {
       );
     });
 
-    testWidgets('con un numero elegido que no sirve manda al otro',
-        (tester) async {
+    testWidgets('con un numero elegido que no sirve manda al otro', (
+      tester,
+    ) async {
       await montarVista(
         tester,
         dados: const Dados(3, 2),
@@ -86,8 +88,9 @@ void main() {
       );
     });
 
-    testWidgets('con jugadas disponibles pide tocar una casilla',
-        (tester) async {
+    testWidgets('con jugadas disponibles pide tocar una casilla', (
+      tester,
+    ) async {
       await montarVista(
         tester,
         dados: const Dados(3, 2),
@@ -118,7 +121,7 @@ void main() {
 
     testWidgets('el puntaje baja si una zona queda incompleta', (tester) async {
       final tablero = Tablero.nivel1();
-      tablero.valores[0][2] = null; // una casilla de la zona azul, que vale 7
+      tablero.valores[0][2] = null;
 
       await montarVista(tester, tablero: tablero);
 
@@ -127,9 +130,8 @@ void main() {
   });
 
   group('los dados', () {
-    Finder dadoCon(int? valor) => find.byWidgetPredicate(
-          (w) => w is DadoAnimado && w.valor == valor,
-        );
+    Finder dadoCon(int? valor) =>
+        find.byWidgetPredicate((w) => w is DadoAnimado && w.valor == valor);
 
     testWidgets('sin tirada los dos salen en blanco', (tester) async {
       await montarVista(tester);
@@ -165,19 +167,20 @@ void main() {
       );
     });
 
-    testWidgets('con reducir movimiento el dado cambia de cara sin rodar',
-        (tester) async {
+    testWidgets('con reducir movimiento el dado cambia de cara sin rodar', (
+      tester,
+    ) async {
       pantallaGrande(tester);
       Widget vista(Dados? dados) => MediaQuery(
-            data: const MediaQueryData(disableAnimations: true),
-            child: montar(
-              VistaJuego(
-                tablero: Tablero.nivel1Inicial(),
-                dados: dados,
-                puedeTirar: false,
-              ),
-            ),
-          );
+        data: const MediaQueryData(disableAnimations: true),
+        child: montar(
+          VistaJuego(
+            tablero: Tablero.nivel1Inicial(),
+            dados: dados,
+            puedeTirar: false,
+          ),
+        ),
+      );
 
       await tester.pumpWidget(vista(null));
       await tester.pumpWidget(vista(const Dados(5, 1)));
@@ -224,9 +227,9 @@ void main() {
       tester.view.physicalSize = const Size(375, 812);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(montar(
-        VistaJuego(tablero: Tablero.nivel1Inicial()),
-      ));
+      await tester.pumpWidget(
+        montar(VistaJuego(tablero: Tablero.nivel1Inicial())),
+      );
 
       expect(tester.takeException(), isNull);
       final tablero = tester.getRect(find.byType(TableroInterfaz));
@@ -235,16 +238,17 @@ void main() {
       expect(regla.top, greaterThan(tablero.bottom));
     });
 
-    testWidgets('una tirada nueva hace rodar el dado y termina en su valor',
-        (tester) async {
+    testWidgets('una tirada nueva hace rodar el dado y termina en su valor', (
+      tester,
+    ) async {
       pantallaGrande(tester);
       Widget vista(Dados? dados) => montar(
-            VistaJuego(
-              tablero: Tablero.nivel1Inicial(),
-              dados: dados,
-              puedeTirar: false,
-            ),
-          );
+        VistaJuego(
+          tablero: Tablero.nivel1Inicial(),
+          dados: dados,
+          puedeTirar: false,
+        ),
+      );
 
       await tester.pumpWidget(vista(null));
       await tester.pumpWidget(vista(const Dados(5, 1)));
@@ -289,8 +293,9 @@ void main() {
       expect(boton(tester).onPressed, isNull);
     });
 
-    testWidgets('esta apagado cuando el tablero ya esta resuelto',
-        (tester) async {
+    testWidgets('esta apagado cuando el tablero ya esta resuelto', (
+      tester,
+    ) async {
       await montarVista(tester, tablero: Tablero.nivel1(), resuelto: true);
 
       expect(boton(tester).onPressed, isNull);
@@ -340,8 +345,9 @@ void main() {
       expect((bloc.state as TableroEnJuego).elegido, 3);
     });
 
-    testWidgets('tocar una casilla resaltada manda NumeroColocado',
-        (tester) async {
+    testWidgets('tocar una casilla resaltada manda NumeroColocado', (
+      tester,
+    ) async {
       final bloc = TableroBloc(azar: AzarFijo([3, 2]));
       addTearDown(bloc.close);
 
@@ -358,16 +364,18 @@ void main() {
       final juego = bloc.state as TableroEnJuego;
       expect(juego.posibles, [(0, 1)]);
 
-      await tester.pumpWidget(montar(
-        VistaJuego(
-          tablero: juego.tablero,
-          dados: juego.dados,
-          elegido: juego.elegido,
-          posibles: juego.posibles,
-          puedeTirar: juego.puedeTirar,
+      await tester.pumpWidget(
+        montar(
+          VistaJuego(
+            tablero: juego.tablero,
+            dados: juego.dados,
+            elegido: juego.elegido,
+            posibles: juego.posibles,
+            puedeTirar: juego.puedeTirar,
+          ),
+          bloc: bloc,
         ),
-        bloc: bloc,
-      ));
+      );
       await tester.pumpAndSettle();
 
       await tester.tapAt(centroDeCelda(tester, 0, 1, filas: 1, columnas: 3));
@@ -379,8 +387,9 @@ void main() {
       expect(despues.elegido, null);
     });
 
-    testWidgets('tocar una casilla que no esta resaltada no escribe nada',
-        (tester) async {
+    testWidgets('tocar una casilla que no esta resaltada no escribe nada', (
+      tester,
+    ) async {
       final bloc = TableroBloc(azar: AzarFijo([3, 2]));
       addTearDown(bloc.close);
 

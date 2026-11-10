@@ -61,7 +61,6 @@ void main() {
         ],
   );
 
-  /// Saca la pantalla del árbol para que se cierre el bloc y sus relojes.
   Future<void> cerrar(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 5));
@@ -129,7 +128,6 @@ void main() {
       expect(find.text('Esperando a tu rival…'), findsOneWidget);
       expect(find.text('Nivel 1 · 1 de 2 jugadores'), findsOneWidget);
 
-      // El botón nunca está apagado: si falta el rival, explica qué hacer.
       await tester.tap(find.byKey(const Key('boton_empezar')));
       await tester.pump();
       expect(
@@ -363,7 +361,6 @@ void main() {
       expect(find.byKey(const Key('banner_conexion')), findsOneWidget);
       expect(find.text('Sin conexión con el servidor'), findsOneWidget);
       expect(find.textContaining('60 s para volver'), findsOneWidget);
-      // La partida sigue a la vista mientras reconecta.
       expect(find.byType(VistaJuego), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('reintentar_ahora')));
@@ -458,7 +455,7 @@ void main() {
     });
   });
 
-  group('boton de la barra', () {
+  group('tarjeta de la portada', () {
     testWidgets('jugando sin cuenta pide iniciar sesion', (tester) async {
       pantallaGrande(tester);
       await tester.pumpWidget(
@@ -471,7 +468,7 @@ void main() {
       await tester.tap(find.text('Jugar sin cuenta'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('boton_en_linea')));
+      await tester.tap(find.byKey(const Key('tarjeta_en_linea')));
       await tester.pumpAndSettle();
 
       expect(find.text('Necesitas una cuenta'), findsOneWidget);
@@ -504,7 +501,7 @@ void main() {
       await tester.tap(find.text('Entrar'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('boton_en_linea')));
+      await tester.tap(find.byKey(const Key('tarjeta_en_linea')));
       await tester.pumpAndSettle();
 
       expect(find.byType(PantallaEnLinea), findsOneWidget);
@@ -683,7 +680,6 @@ void main() {
         ),
       );
 
-      // El tablero local no tiene zonas completas, pero el servidor dice 6.
       expect(find.text('6'), findsWidgets);
       expect(find.text('6 puntos'), findsOneWidget);
       await cerrar(tester);

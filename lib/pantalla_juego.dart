@@ -9,8 +9,6 @@ import 'vista_juego.dart';
 class PantallaJuego extends StatefulWidget {
   final List<Widget> acciones;
 
-  /// La tarjeta del modo en línea. Con ella la portada pregunta primero
-  /// cómo se quiere jugar.
   final Widget? tarjetaEnLinea;
 
   const PantallaJuego({
@@ -24,7 +22,6 @@ class PantallaJuego extends StatefulWidget {
 }
 
 class _PantallaJuegoState extends State<PantallaJuego> {
-  /// Ya se eligió jugar solo: se ven los tableros y no los modos.
   bool _viendoTableros = false;
 
   @override
@@ -59,7 +56,6 @@ class _PantallaJuegoState extends State<PantallaJuego> {
             appBar: AppBar(
               leadingWidth: atras == null ? null : (ancho ? 136 : 56),
               leading: atras,
-              title: const Text('Juego Brilliant'),
               actions: widget.acciones,
             ),
             body: switch (estado) {
@@ -130,8 +126,6 @@ class _BotonAtras extends StatelessWidget {
   }
 }
 
-/// Vuelve a la selección de tableros. Si hay una partida a medias, antes
-/// pregunta, porque lo que lleva el tablero se pierde.
 class BotonSalirTablero extends StatelessWidget {
   final TableroState estado;
   final bool conTexto;

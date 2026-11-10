@@ -27,7 +27,7 @@ void main() {
       await abrirComoInvitado(tester);
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Juego Brilliant'), findsOneWidget);
+      expect(find.byType(PantallaJuego), findsOneWidget);
     });
 
     testWidgets('arranca preguntando como jugar', (tester) async {
