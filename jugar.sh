@@ -18,7 +18,9 @@ CARPETA_SERVIDOR="${CARPETA_SERVIDOR:-../servidor_brilliant}"
 escuchando() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 
 # La IP de esta compu en el Wi-Fi (macOS primero, luego Linux).
-IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null ||
+INTERFAZ="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' || true)"
+IP="$( { [[ -n "$INTERFAZ" ]] && ipconfig getifaddr "$INTERFAZ"; } 2>/dev/null ||
+  ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null ||
   hostname -I 2>/dev/null | awk '{print $1}' || true)"
 if [[ -z "$IP" ]]; then
   echo "No encontré tu IP en la red; solo se podrá jugar en esta compu."
@@ -100,6 +102,7 @@ echo
 echo "============================================================"
 echo "  En esta compu:       http://localhost:$PUERTO_JUEGO"
 echo "  En otra compu/cel:   http://$IP:$PUERTO_JUEGO"
+echo "  App del iPhone:      servidor $IP"
 echo "  (tienen que estar en el mismo Wi-Fi)"
 echo "  Ctrl+C para apagar todo."
 echo "============================================================"
