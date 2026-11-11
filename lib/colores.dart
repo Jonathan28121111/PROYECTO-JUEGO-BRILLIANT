@@ -25,6 +25,28 @@ Color colorDe(Tipo tipo) {
   }
 }
 
+const List<Color> coloresJugadores = [
+  Color(0xFF26A9E0),
+  Color(0xFFEA580C),
+  Color(0xFF15803D),
+  Color(0xFFBE185D),
+  Color(0xFF1F2937),
+];
+
+Color colorJugador(int indice) =>
+    coloresJugadores[indice % coloresJugadores.length];
+
+String nombreZona(Tipo tipo) => switch (tipo) {
+  Tipo.rojo => 'roja',
+  Tipo.amarillo => 'amarilla',
+  Tipo.azul => 'azul',
+  Tipo.morado => 'morada',
+  Tipo.verde => 'verde',
+  Tipo.blanco => 'blanca',
+  Tipo.naranja1a3 => 'naranja (1-3)',
+  Tipo.naranja4a6 => 'naranja (4-6)',
+};
+
 Color colorTextoSobre(Color fondo) {
   return ThemeData.estimateBrightnessForColor(fondo) == Brightness.dark
       ? Colors.white

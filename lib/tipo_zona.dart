@@ -16,8 +16,8 @@ const Map<Tipo, List<int>> puntosPorTipo = {
   Tipo.morado: [6, 4, 2],
   Tipo.verde: [4, 3, 2],
   Tipo.blanco: [3, 2, 1],
-  Tipo.naranja1a3: [6, 4, 2],
-  Tipo.naranja4a6: [6, 4, 2],
+  Tipo.naranja1a3: [6, 4, 3],
+  Tipo.naranja4a6: [6, 4, 3],
 };
 
 const Map<Tipo, (int, int)> rangoPorTipo = {

@@ -30,14 +30,10 @@ void main() {
       expect(find.text('No disponible'), findsNothing);
     });
 
-    testWidgets('cada tarjeta dice cuantas zonas tiene su tablero', (
-      tester,
-    ) async {
+    testWidgets('las tarjetas no dicen cuantas zonas tienen', (tester) async {
       await abrir(tester);
 
-      expect(find.text('9 zonas'), findsOneWidget);
-      expect(find.text('10 zonas'), findsOneWidget);
-      expect(find.text('8 zonas'), findsNWidgets(2));
+      expect(find.textContaining('zonas'), findsNothing);
     });
   });
 

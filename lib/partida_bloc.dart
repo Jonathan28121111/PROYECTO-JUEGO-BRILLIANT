@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'colores.dart';
 import 'conexion_juego.dart';
 import 'nivel.dart';
 import 'sala_en_linea.dart';
@@ -398,8 +399,32 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     }
   }
 
+  String? _zonasNuevas(SalaEnLinea? antes, SalaEnLinea ahora) {
+    if (antes == null || antes.codigo != ahora.codigo) return null;
+    final avisos = <String>[];
+    for (final jugador in ahora.jugadores) {
+      final previo = antes.jugadores
+          .where(
+            (j) => j.usuario.toLowerCase() == jugador.usuario.toLowerCase(),
+          )
+          .firstOrNull;
+      final vistas = previo?.zonas.keys.toSet() ?? const <int>{};
+      final esTu = jugador.usuario.toLowerCase() == usuario.toLowerCase();
+      for (final zona in jugador.zonas.keys) {
+        if (vistas.contains(zona)) continue;
+        final tipo = ahora.datosNivel.coloresPorZona[zona];
+        if (tipo == null) continue;
+        final puntos = ahora.puntosDeZona(jugador, zona);
+        final quien = esTu ? 'Completaste' : '${jugador.usuario} completó';
+        avisos.add('$quien una zona ${nombreZona(tipo)} (+$puntos)');
+      }
+    }
+    return avisos.isEmpty ? null : avisos.join(' · ');
+  }
+
   void _alEstado(SalaEnLinea sala, Emitter<PartidaState> emit) {
     _esperandoUnirse = false;
+    final zonas = _zonasNuevas(state.sala, sala);
     var nuevo = state.copyWith(
       sala: () => sala,
       cargando: false,
@@ -430,7 +455,13 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         _conexion?.enviar(pendiente.mensaje);
       }
     }
-    emit(aviso == null ? nuevo : nuevo.conAviso(aviso, error: true));
+    if (aviso != null) {
+      emit(nuevo.conAviso(aviso, error: true));
+    } else if (zonas != null) {
+      emit(nuevo.conAviso(zonas));
+    } else {
+      emit(nuevo);
+    }
 
     _quizaPasar(emit);
   }

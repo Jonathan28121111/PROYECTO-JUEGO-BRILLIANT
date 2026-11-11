@@ -3,6 +3,7 @@
 #
 #   ./jugar.sh              compila si cambió el código o la IP y sirve el juego
 #   ./jugar.sh --compilar   fuerza a compilar de nuevo
+#   ./jugar.sh --iphone     instala el juego en el iPhone conectado (necesita Xcode)
 #
 # El juego se compila en modo release: va mucho más fluido que con
 # `flutter run`, que es modo depuración. Se apaga todo con Ctrl+C.
@@ -62,7 +63,18 @@ else
   echo "✓ Servidor listo en el puerto $PUERTO_SERVIDOR."
 fi
 
-# 2. El juego: se compila si se pide, si cambió la IP o si hay código más
+# 2. En el iPhone: se instala la app y se queda corriendo con el servidor.
+if [[ "${1:-}" == "--iphone" ]]; then
+  if ! xcodebuild -version >/dev/null 2>&1; then
+    echo "Falta Xcode. Instálalo desde la App Store y ábrelo una vez."
+    exit 1
+  fi
+  echo "Instalando en el iPhone (servidor: $DIRECCION_SERVIDOR)..."
+  flutter run --release --dart-define=SERVIDOR="$DIRECCION_SERVIDOR"
+  exit 0
+fi
+
+# 3. El juego: se compila si se pide, si cambió la IP o si hay código más
 #    nuevo que la última compilación.
 MARCA="build/web/.servidor"
 motivo=""

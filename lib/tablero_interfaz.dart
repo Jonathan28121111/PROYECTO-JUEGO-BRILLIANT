@@ -4,6 +4,15 @@ import 'colores.dart';
 import 'tablero.dart';
 import 'tipo_zona.dart';
 
+class MarcaZona {
+  final String usuario;
+  final Color color;
+
+  const MarcaZona(this.usuario, this.color);
+
+  String get letra => usuario.isEmpty ? '?' : usuario[0].toUpperCase();
+}
+
 class TableroInterfaz extends StatelessWidget {
   final Tablero tablero;
   final List<(int, int)> anclas;
@@ -16,6 +25,8 @@ class TableroInterfaz extends StatelessWidget {
 
   final bool Function((int, int) celda, int numero)? aceptaFicha;
 
+  final Map<(int, int), List<MarcaZona>> marcas;
+
   const TableroInterfaz({
     super.key,
     required this.tablero,
@@ -27,6 +38,7 @@ class TableroInterfaz extends StatelessWidget {
     this.posibles = const [],
     this.alTocar,
     this.aceptaFicha,
+    this.marcas = const {},
   });
 
   @override
@@ -67,6 +79,7 @@ class TableroInterfaz extends StatelessWidget {
                                 anclas.contains((fila, columna)) &&
                                 numeros[(fila, columna)] == null,
                             esPosible: posibles.contains((fila, columna)),
+                            marcas: marcas[(fila, columna)] ?? const [],
                             alSoltar: (n) => alSoltar((fila, columna), n),
                             alQuitar: () => alQuitar((fila, columna)),
                             alTocar: tocar == null
@@ -98,6 +111,7 @@ class _Celda extends StatelessWidget {
   final VoidCallback alQuitar;
   final VoidCallback? alTocar;
   final bool Function(int)? aceptaFicha;
+  final List<MarcaZona> marcas;
 
   const _Celda({
     required this.tipo,
@@ -109,6 +123,7 @@ class _Celda extends StatelessWidget {
     required this.alQuitar,
     required this.alTocar,
     this.aceptaFicha,
+    this.marcas = const [],
   });
 
   @override
@@ -149,6 +164,43 @@ class _Celda extends StatelessWidget {
                       color: colorTexto,
                     ),
                   ),
+                ),
+              ),
+            if (marcas.isNotEmpty)
+              Positioned(
+                top: r.maxWidth * 0.04,
+                right: r.maxWidth * 0.04,
+                left: r.maxWidth * 0.04,
+                child: Wrap(
+                  key: const Key('marcas_zona'),
+                  alignment: WrapAlignment.end,
+                  spacing: 1,
+                  runSpacing: 1,
+                  children: [
+                    for (final marca in marcas)
+                      Tooltip(
+                        message: 'Completada por ${marca.usuario}',
+                        child: Container(
+                          width: r.maxWidth * 0.28,
+                          height: r.maxWidth * 0.28,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: marca.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          child: Text(
+                            marca.letra,
+                            style: TextStyle(
+                              fontSize: r.maxWidth * 0.17,
+                              height: 1,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             if (numero != null)

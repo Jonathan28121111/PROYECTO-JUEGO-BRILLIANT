@@ -29,6 +29,8 @@ class VistaJuego extends StatelessWidget {
 
   final int? puntos;
 
+  final Map<(int, int), List<MarcaZona>> marcas;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -44,6 +46,7 @@ class VistaJuego extends StatelessWidget {
     this.dadosActivos = true,
     this.instruccion,
     this.puntos,
+    this.marcas = const {},
   });
 
   String get _instruccion {
@@ -93,10 +96,105 @@ class VistaJuego extends StatelessWidget {
           alSoltar: (_, _) {},
           alQuitar: (_) {},
           alTocar: (celda) => colocar(celda.$1, celda.$2),
+          marcas: marcas,
         );
         final (izquierda, derecha) = reglasDe(nivel);
 
         final angosta = restricciones.maxWidth < 600;
+
+        final controles = <Widget>[
+          const SizedBox(height: 14),
+          _Marcador(puntos: puntos ?? tablero.puntos),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              DadoAnimado(
+                key: const Key('dado_1'),
+                valor: tirada?.primero,
+                tirada: tirada,
+                seleccionado: tirada != null && elegido == tirada.primero,
+                alTocar: tirada == null || !dadosActivos
+                    ? null
+                    : () => elegir(tirada.primero),
+              ),
+              const SizedBox(width: 18),
+              DadoAnimado(
+                key: const Key('dado_2'),
+                valor: tirada?.segundo,
+                tirada: tirada,
+                seleccionado: tirada != null && elegido == tirada.segundo,
+                alTocar: tirada == null || !dadosActivos
+                    ? null
+                    : () => elegir(tirada.segundo),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (conBotonTirar)
+            FilledButton(
+              onPressed: (resuelto || !puedeTirar)
+                  ? null
+                  : () => context.read<TableroBloc>().add(DadosTirados()),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF43A047),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: Colors.black, width: 2),
+                ),
+              ),
+              child: const Text(
+                'Tirar los dados',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            _instruccion,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ];
+
+        if (!angosta && restricciones.maxHeight < 500) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 130,
+                  child: PanelReglas(reglas: izquierda, puntos: nivel.puntos),
+                ),
+                SizedBox(
+                  width: 130,
+                  child: PanelReglas(reglas: derecha, puntos: nivel.puntos),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: Center(child: interfaz)),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 240,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: controles,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -130,65 +228,7 @@ class VistaJuego extends StatelessWidget {
                     ],
                   ),
                 ),
-              const SizedBox(height: 14),
-              _Marcador(puntos: puntos ?? tablero.puntos),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  DadoAnimado(
-                    key: const Key('dado_1'),
-                    valor: tirada?.primero,
-                    tirada: tirada,
-                    seleccionado: tirada != null && elegido == tirada.primero,
-                    alTocar: tirada == null || !dadosActivos
-                        ? null
-                        : () => elegir(tirada.primero),
-                  ),
-                  const SizedBox(width: 18),
-                  DadoAnimado(
-                    key: const Key('dado_2'),
-                    valor: tirada?.segundo,
-                    tirada: tirada,
-                    seleccionado: tirada != null && elegido == tirada.segundo,
-                    alTocar: tirada == null || !dadosActivos
-                        ? null
-                        : () => elegir(tirada.segundo),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (conBotonTirar)
-                FilledButton(
-                  onPressed: (resuelto || !puedeTirar)
-                      ? null
-                      : () => context.read<TableroBloc>().add(DadosTirados()),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF43A047),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.black, width: 2),
-                    ),
-                  ),
-                  child: const Text(
-                    'Tirar los dados',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Text(
-                _instruccion,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              ...controles,
               if (angosta) ...[
                 const SizedBox(height: 24),
                 Row(

@@ -5,6 +5,7 @@ import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/pantalla_anclas.dart';
 import 'package:pruebas_numeros/pantalla_juego.dart';
 import 'package:pruebas_numeros/pantalla_niveles.dart';
+import 'package:pruebas_numeros/tablero_interfaz.dart';
 import 'package:pruebas_numeros/vista_juego.dart';
 
 import 'ayudas_interfaz.dart';
@@ -202,6 +203,85 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(PantallaAnclas), findsOneWidget);
+    });
+  });
+
+  group('en el celular', () {
+    final vertical = const Size(390, 844);
+    final horizontal = const Size(844, 390);
+
+    Rect cuadroTablero(WidgetTester tester) => tester.getRect(
+      find.descendant(
+        of: find.byType(TableroInterfaz),
+        matching: find.byType(AspectRatio),
+      ),
+    );
+
+    Future<void> abrirNivel1(WidgetTester tester, Size tamano) async {
+      pantallaGrande(tester, tamano: tamano);
+      await tester.pumpWidget(const MaterialApp(home: PantallaJuego()));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Nivel 1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Nivel 1'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> ponerAnclas(WidgetTester tester) async {
+      for (var n = 1; n <= 6; n++) {
+        final ancla = nivel1.anclas[n - 1];
+        await arrastrarFicha(tester, n, ancla.$1, ancla.$2);
+      }
+    }
+
+    testWidgets('los tableros se ven en dos columnas', (tester) async {
+      pantallaGrande(tester, tamano: vertical);
+      await tester.pumpWidget(const MaterialApp(home: PantallaJuego()));
+      await tester.pumpAndSettle();
+
+      final uno = tester.getRect(find.byType(TarjetaNivel).at(0));
+      final dos = tester.getRect(find.byType(TarjetaNivel).at(1));
+      expect(tester.takeException(), isNull);
+      expect(uno.top, dos.top);
+      expect(dos.right, lessThanOrEqualTo(vertical.width));
+    });
+
+    testWidgets('en vertical las anclas usan todo el ancho y se pueden poner', (
+      tester,
+    ) async {
+      await abrirNivel1(tester, vertical);
+
+      expect(tester.takeException(), isNull);
+      expect(cuadroTablero(tester).width, greaterThan(300));
+
+      await ponerAnclas(tester);
+      await tester.tap(find.text('¡Listo! Empezar a jugar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VistaJuego), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('en horizontal las fichas quedan junto al tablero', (
+      tester,
+    ) async {
+      await abrirNivel1(tester, horizontal);
+
+      expect(tester.takeException(), isNull);
+      final tablero = cuadroTablero(tester);
+      expect(tablero.height, greaterThan(250));
+      final ficha = tester.getRect(find.widgetWithText(Draggable<int>, '1'));
+      expect(ficha.left, greaterThan(tablero.right));
+
+      await ponerAnclas(tester);
+      await tester.tap(find.text('¡Listo! Empezar a jugar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VistaJuego), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      final dado = tester.getRect(find.byKey(const Key('dado_1')));
+      expect(dado.bottom, lessThanOrEqualTo(horizontal.height));
+      expect(dado.left, greaterThan(cuadroTablero(tester).right));
     });
   });
 }

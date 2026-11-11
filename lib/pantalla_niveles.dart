@@ -242,18 +242,28 @@ class _SelectorTablero extends StatelessWidget {
           style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
         ),
         const SizedBox(height: 32),
-        Wrap(
-          spacing: 24,
-          runSpacing: 24,
-          children: [
-            for (final nivel in nivelesOficiales)
-              TarjetaNivel(
-                nivel: nivel,
-                alTocar: nivel.disponible
-                    ? () => context.read<TableroBloc>().add(NivelElegido(nivel))
-                    : null,
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, espacio) {
+            final angosto = espacio.maxWidth < 520;
+            final separacion = angosto ? 12.0 : 24.0;
+            final ancho = angosto ? (espacio.maxWidth - separacion) / 2 : 232.0;
+            return Wrap(
+              spacing: separacion,
+              runSpacing: separacion,
+              children: [
+                for (final nivel in nivelesOficiales)
+                  TarjetaNivel(
+                    nivel: nivel,
+                    ancho: ancho,
+                    alTocar: nivel.disponible
+                        ? () => context.read<TableroBloc>().add(
+                            NivelElegido(nivel),
+                          )
+                        : null,
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -263,8 +273,14 @@ class _SelectorTablero extends StatelessWidget {
 class TarjetaNivel extends StatelessWidget {
   final Nivel nivel;
   final VoidCallback? alTocar;
+  final double ancho;
 
-  const TarjetaNivel({super.key, required this.nivel, this.alTocar});
+  const TarjetaNivel({
+    super.key,
+    required this.nivel,
+    this.alTocar,
+    this.ancho = 232,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +294,7 @@ class TarjetaNivel extends StatelessWidget {
     return Opacity(
       opacity: habilitado ? 1 : 0.5,
       child: SizedBox(
-        width: 232,
+        width: ancho,
         child: Material(
           color: Colors.white,
           shape: forma,
@@ -292,7 +308,7 @@ class TarjetaNivel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: 200,
+                    height: ancho - 32,
                     child: Center(
                       child: nivel.disponible
                           ? MiniaturaNivel(nivel: nivel)
@@ -322,9 +338,7 @@ class TarjetaNivel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          nivel.disponible
-                              ? '${nivel.coloresPorZona.length} zonas'
-                              : 'No disponible',
+                          nivel.disponible ? '' : 'No disponible',
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,

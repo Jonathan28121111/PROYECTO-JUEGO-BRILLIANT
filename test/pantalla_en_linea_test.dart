@@ -126,7 +126,7 @@ void main() {
 
       expect(find.text('K7P2QX'), findsOneWidget);
       expect(find.text('Esperando a tu rival…'), findsOneWidget);
-      expect(find.text('Nivel 1 · 1 de 2 jugadores'), findsOneWidget);
+      expect(find.text('Nivel 1 · 1 de 5 jugadores'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('boton_empezar')));
       await tester.pump();
@@ -217,6 +217,14 @@ void main() {
       await cerrar(tester);
     });
 
+    testWidgets('el marcador muestra la meta de puntos', (tester) async {
+      await abrir(tester);
+      await llega(tester, enJuego());
+
+      expect(find.text('Meta: 26 pts'), findsOneWidget);
+      await cerrar(tester);
+    });
+
     testWidgets('el reloj de la ronda cuenta hacia atras', (tester) async {
       await abrir(tester);
       await llega(tester, enJuego());
@@ -257,19 +265,17 @@ void main() {
           segundosRonda: null,
           jugadores: [
             jugador('ana', listo: true),
-            jugador('beto', listo: true, conectado: false, segundosGracia: 45),
+            jugador('beto', listo: true, conectado: false, segundosGracia: 8),
           ],
         ),
       );
 
       expect(find.byKey(const Key('aviso_rival')), findsOneWidget);
       expect(
-        find.text(
-          'beto se desconectó. Si no vuelve en 45 s, ganas la partida.',
-        ),
+        find.text('beto se desconectó. Si no vuelve en 8 s, ganas la partida.'),
         findsOneWidget,
       );
-      expect(find.text('Desconectado · 45 s'), findsOneWidget);
+      expect(find.text('Desconectado · 8 s'), findsOneWidget);
       expect(find.text('reloj en pausa'), findsOneWidget);
       await cerrar(tester);
     });
@@ -360,7 +366,7 @@ void main() {
 
       expect(find.byKey(const Key('banner_conexion')), findsOneWidget);
       expect(find.text('Sin conexión con el servidor'), findsOneWidget);
-      expect(find.textContaining('60 s para volver'), findsOneWidget);
+      expect(find.textContaining('10 s para volver'), findsOneWidget);
       expect(find.byType(VistaJuego), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('reintentar_ahora')));
@@ -682,6 +688,224 @@ void main() {
 
       expect(find.text('6'), findsWidgets);
       expect(find.text('6 puntos'), findsOneWidget);
+      await cerrar(tester);
+    });
+  });
+
+  group('varios jugadores', () {
+    List<Map<String, Object?>> tres({
+      bool caroFuera = false,
+      bool betoCaido = false,
+    }) => [
+      jugador('ana', listo: true, puntos: 12),
+      jugador(
+        'beto',
+        listo: true,
+        puntos: 7,
+        conectado: !betoCaido,
+        segundosGracia: betoCaido ? 8 : null,
+      ),
+      jugador('caro', listo: true, puntos: 3, fuera: caroFuera),
+    ];
+
+    testWidgets('la sala de espera dice cuantos caben', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          jugadores: [jugador('ana'), jugador('beto'), jugador('caro')],
+        ),
+      );
+
+      expect(find.text('Nivel 1 · 3 de 5 jugadores'), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets('el marcador muestra a todos con sus puntos', (tester) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: tres()));
+
+      expect(find.byKey(const Key('tira_jugadores')), findsOneWidget);
+      expect(find.text('ana (tú)'), findsOneWidget);
+      expect(find.text('beto'), findsOneWidget);
+      expect(find.text('caro'), findsOneWidget);
+      expect(find.byKey(const Key('puntos_caro')), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets('quien se rindio aparece fuera', (tester) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: tres(caroFuera: true)));
+
+      expect(find.text('Fuera'), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets('si uno se cae los demas ven que quedara fuera', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        enJuego(segundosRonda: null, jugadores: tres(betoCaido: true)),
+      );
+
+      expect(
+        find.text(
+          'beto se desconectó. Si no vuelve en 8 s, queda fuera de la '
+          'partida.',
+        ),
+        findsOneWidget,
+      );
+      await cerrar(tester);
+    });
+
+    testWidgets('rendirse con varios avisa que los demas siguen', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: tres()));
+
+      await tester.tap(find.byKey(const Key('boton_rendirse')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('los demás siguen jugando'), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets('el resultado ordena a todos por puntos', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          fase: 'terminada',
+          jugadores: [
+            jugador('ana', puntos: 10),
+            jugador('beto', puntos: 24),
+            jugador('caro', puntos: 15),
+          ],
+          resultado: {'ganador': 'beto', 'motivo': 'puntos'},
+        ),
+      );
+
+      expect(find.text('Perdiste'), findsOneWidget);
+      expect(
+        find.text('Ganó beto con 24 puntos. Tú hiciste 10.'),
+        findsOneWidget,
+      );
+      final y = [
+        for (final n in ['beto', 'caro', 'ana'])
+          tester.getTopLeft(find.text(n).last).dy,
+      ];
+      expect(y[0] < y[1] && y[1] < y[2], isTrue);
+      await cerrar(tester);
+    });
+
+    testWidgets('con cinco en el celular el marcador cabe', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider(
+            create: (_) => SesionBloc(ServidorFalso().cliente()),
+            child: PantallaEnLinea(
+              cuenta: const Cuenta(usuario: 'ana', token: 'token-de-ana'),
+              abrir: servidor.abrir,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await llega(
+        tester,
+        enJuego(
+          jugadores: [
+            for (final n in ['ana', 'beto', 'caro', 'dani', 'eva'])
+              jugador(n, listo: true, puntos: 5),
+          ],
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      await cerrar(tester);
+    });
+  });
+
+  group('zonas completadas', () {
+    List<Map<String, Object?>> dos({Map<String, int> deBeto = const {}}) => [
+      jugador('ana', listo: true),
+      jugador('beto', listo: true, zonas: deBeto),
+    ];
+
+    testWidgets('avisa cuando el rival completa una zona', (tester) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: dos()));
+
+      await llega(tester, enJuego(jugadores: dos(deBeto: {'7': 3})));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('beto completó una zona roja (+6)'), findsOneWidget);
+      await cerrar(tester);
+    });
+
+    testWidgets('al conectarse no repite las zonas que ya estaban', (
+      tester,
+    ) async {
+      await abrir(tester);
+
+      await llega(tester, enJuego(jugadores: dos(deBeto: {'7': 3})));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.textContaining('completó'), findsNothing);
+      await cerrar(tester);
+    });
+
+    testWidgets('la zona lleva la inicial de quien la completo', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: dos(deBeto: {'7': 3})));
+
+      final marcas = find.byKey(const Key('marcas_zona'));
+      expect(marcas, findsOneWidget);
+      expect(
+        find.descendant(of: marcas, matching: find.text('B')),
+        findsOneWidget,
+      );
+      await cerrar(tester);
+    });
+
+    testWidgets('el segundo en completarla se lleva el segundo puntaje', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        enJuego(
+          jugadores: [
+            jugador('ana', listo: true),
+            jugador('beto', listo: true, zonas: {'7': 2}),
+          ],
+        ),
+      );
+
+      await llega(
+        tester,
+        enJuego(
+          jugadores: [
+            jugador('ana', listo: true, zonas: {'7': 3}),
+            jugador('beto', listo: true, zonas: {'7': 2}),
+          ],
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Completaste una zona roja (+4)'), findsOneWidget);
+      final marcas = find.byKey(const Key('marcas_zona'));
+      expect(find.descendant(of: marcas, matching: find.text('B')), findsOne);
+      expect(find.descendant(of: marcas, matching: find.text('A')), findsOne);
       await cerrar(tester);
     });
   });
