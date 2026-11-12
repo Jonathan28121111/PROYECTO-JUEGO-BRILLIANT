@@ -1,0 +1,384 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'nivel.dart';
+import 'panel_reglas.dart';
+import 'tablero.dart';
+import 'tablero_bloc.dart';
+import 'tablero_interfaz.dart';
+
+const Color verdePastel = Color(0xFFA5D6A7);
+const Color verdePastelClaro = Color(0xFFEAF7EA);
+const Color verdeTexto = Color(0xFF1B3D1E);
+
+class PantallaAnclas extends StatefulWidget {
+  final Nivel nivel;
+
+  final void Function(Tablero tablero)? alTerminar;
+
+  const PantallaAnclas({super.key, this.nivel = nivel1, this.alTerminar});
+
+  @override
+  State<PantallaAnclas> createState() => _PantallaAnclasState();
+}
+
+class _PantallaAnclasState extends State<PantallaAnclas> {
+  late final Tablero tablero = Tablero.deNivel(widget.nivel);
+  final Map<(int, int), int> numeros = {};
+  bool arrastrando = false;
+
+  int get total => widget.nivel.anclas.length;
+  bool get completo => numeros.length == total;
+
+  void _soltar((int, int) celda, int numero) {
+    if (!_acepta(celda, numero)) {
+      return;
+    }
+    setState(() {
+      numeros.removeWhere((_, puesto) => puesto == numero);
+      numeros[celda] = numero;
+    });
+  }
+
+  void _quitar((int, int) celda) {
+    setState(() => numeros.remove(celda));
+  }
+
+  bool _acepta((int, int) celda, int numero) {
+    final conAnclas = Tablero.deNivel(widget.nivel);
+    numeros.forEach((otra, puesto) {
+      if (otra == celda || puesto == numero) return;
+      conAnclas.valores[otra.$1][otra.$2] = puesto;
+    });
+    final id = conAnclas.zonasPorCelda[celda.$1][celda.$2];
+    return conAnclas.zona(id).aceptaNumero(numero);
+  }
+
+  Tablero _tableroConAnclas() {
+    final conAnclas = Tablero.deNivel(widget.nivel);
+    numeros.forEach((celda, numero) {
+      conAnclas.valores[celda.$1][celda.$2] = numero;
+    });
+    return conAnclas;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final usados = numeros.values.toSet();
+
+    final (izquierda, derecha) = reglasDe(widget.nivel);
+    final interfaz = TableroInterfaz(
+      tablero: tablero,
+      anclas: widget.nivel.anclas,
+      numeros: numeros,
+      arrastrando: arrastrando,
+      alSoltar: _soltar,
+      alQuitar: _quitar,
+    );
+    final fichas = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var n = 1; n <= 6; n++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: usados.contains(n)
+                  ? const _Hueco()
+                  : _Ficha(
+                      numero: n,
+                      alEmpezar: () => setState(() => arrastrando = true),
+                      alTerminar: () => setState(() => arrastrando = false),
+                    ),
+            ),
+        ],
+      ),
+    );
+    final boton = _BotonProgreso(
+      puestos: numeros.length,
+      total: total,
+      alTocar: completo
+          ? () {
+              final listo = _tableroConAnclas();
+              final terminar = widget.alTerminar;
+              if (terminar != null) {
+                terminar(listo);
+              } else {
+                context.read<TableroBloc>().add(
+                  ValoresInicialesProporcionados(listo),
+                );
+              }
+            }
+          : null,
+    );
+
+    return LayoutBuilder(
+      builder: (context, espacio) {
+        if (espacio.maxWidth < 600) {
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: interfaz,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: PanelReglas(
+                              reglas: izquierda,
+                              puntos: widget.nivel.puntos,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: PanelReglas(
+                              reglas: derecha,
+                              puntos: widget.nivel.puntos,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Column(
+                    children: [fichas, const SizedBox(height: 12), boton],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        if (espacio.maxHeight < 500) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 130,
+                  child: PanelReglas(
+                    reglas: izquierda,
+                    puntos: widget.nivel.puntos,
+                  ),
+                ),
+                Expanded(child: Center(child: interfaz)),
+                SizedBox(
+                  width: 130,
+                  child: PanelReglas(
+                    reglas: derecha,
+                    puntos: widget.nivel.puntos,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 216,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          for (var n = 1; n <= 6; n++)
+                            usados.contains(n)
+                                ? const _Hueco()
+                                : _Ficha(
+                                    numero: n,
+                                    alEmpezar: () =>
+                                        setState(() => arrastrando = true),
+                                    alTerminar: () =>
+                                        setState(() => arrastrando = false),
+                                  ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _BotonProgreso(
+                        puestos: numeros.length,
+                        total: total,
+                        alTocar: boton.alTocar,
+                        ancho: 216,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: PanelReglas(
+                        reglas: izquierda,
+                        puntos: widget.nivel.puntos,
+                      ),
+                    ),
+                    Expanded(child: Center(child: interfaz)),
+                    SizedBox(
+                      width: 150,
+                      child: PanelReglas(
+                        reglas: derecha,
+                        puntos: widget.nivel.puntos,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              fichas,
+              const SizedBox(height: 20),
+              boton,
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BotonProgreso extends StatelessWidget {
+  final int puestos;
+  final int total;
+  final VoidCallback? alTocar;
+  final double ancho;
+
+  const _BotonProgreso({
+    required this.puestos,
+    required this.total,
+    required this.alTocar,
+    this.ancho = 300,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final completo = puestos == total;
+
+    return Container(
+      width: ancho,
+      height: 56,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(color: verdePastelClaro),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: puestos / total),
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeOutCubic,
+              builder: (context, valor, _) => FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: valor,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  color: completo ? const Color(0xFF43A047) : verdePastel,
+                ),
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: alTocar,
+                child: Center(
+                  child: Text(
+                    completo
+                        ? '¡Listo! Empezar a jugar'
+                        : '$puestos de $total colocados',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: completo ? Colors.white : verdeTexto,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Ficha extends StatelessWidget {
+  final int numero;
+  final VoidCallback alEmpezar;
+  final VoidCallback alTerminar;
+
+  const _Ficha({
+    required this.numero,
+    required this.alEmpezar,
+    required this.alTerminar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cuerpo = Container(
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$numero',
+        style: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+      ),
+    );
+
+    return Draggable<int>(
+      data: numero,
+      onDragStarted: alEmpezar,
+      onDragEnd: (_) => alTerminar(),
+      feedback: Material(color: Colors.transparent, child: cuerpo),
+      childWhenDragging: Opacity(opacity: 0.3, child: cuerpo),
+      child: cuerpo,
+    );
+  }
+}
+
+class _Hueco extends StatelessWidget {
+  const _Hueco();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black26, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
+  }
+}
