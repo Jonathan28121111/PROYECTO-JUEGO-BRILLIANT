@@ -78,16 +78,28 @@ inicial y el color de quien la completó, en el orden en que llegaron. Así se
 sabe quién ya se llevó el puntaje mayor de cada zona.
 
 **Si se corta la conexión**, la app reintenta sola y muestra un aviso. Tienes
-**10 segundos** para volver: el reloj de la ronda se detiene y los demás ven
+**10 segundos** para volver y los demás ven
 cuánto te queda. Al volver (aunque recargues la página) tu tablero se
 reconstruye desde el servidor. Si no vuelves a tiempo, quedas fuera de la
 partida; si solo queda un jugador, gana por abandono, y si nadie vuelve, la
 partida se anula.
 
-Cada ronda dura como máximo 90 segundos; si no juegas, pasas. Si con los dados
+En la sala de espera cada jugador da **Listo** y el anfitrión elige si hay
+**reloj de 90 segundos por ronda** (si se acaba, pasas) o si se juega sin
+reloj. La partida empieza cuando todos dieron Listo. Si con los dados
 no hay ninguna jugada posible, pasas automáticamente. En cualquier momento
 puedes **rendirte** (botón de la bandera o al salir de la pantalla): quedas
 fuera y los demás siguen; si solo queda uno, gana.
+
+## Sonidos
+
+Los dados son una grabación real de 2d6 del **SFX Pack - Rolling Dice** de
+Halfwits & Failed Crits (micrófono Neumann TLM103, licencia CC0). El resto son
+de los packs **Casino Audio** e **Interface Sounds** de
+[Kenney](https://kenney.nl) (CC0). Todos son libres para cualquier uso. Están
+en `assets/sonidos/` convertidos a AAC (`.m4a`) para que suenen en iPhone.
+Se silencian desde el menú de tu cuenta o con la bocina en el modo en línea.
+Suenan aunque el iPhone esté en modo silencio; para callarlos usa esa opción.
 
 ## En el iPhone
 
