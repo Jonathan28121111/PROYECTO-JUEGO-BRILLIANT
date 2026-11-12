@@ -6,9 +6,14 @@ import 'conexion_juego.dart';
 import 'pantalla_cuenta.dart';
 import 'pantalla_en_linea.dart';
 import 'pantalla_juego.dart';
+import 'servidor.dart';
 import 'sesion_bloc.dart';
+import 'sonidos.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await cargarServidorGuardado();
+  await Sonidos.cargar();
   runApp(const JuegoBrilliantApp());
 }
 

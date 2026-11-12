@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'sonidos.dart';
+
 const Color rojoDado = Color(0xFFE53935);
 const Color rojoDadoApagado = Color(0xFFF2B8B5);
 
@@ -13,6 +15,7 @@ class DadoAnimado extends StatefulWidget {
   final bool seleccionado;
   final VoidCallback? alTocar;
   final double tamano;
+  final bool sonarAlRodar;
 
   const DadoAnimado({
     super.key,
@@ -21,6 +24,7 @@ class DadoAnimado extends StatefulWidget {
     this.seleccionado = false,
     this.alTocar,
     this.tamano = 60,
+    this.sonarAlRodar = false,
   });
 
   @override
@@ -45,6 +49,7 @@ class _DadoAnimadoState extends State<DadoAnimado>
   void didUpdateWidget(DadoAnimado viejo) {
     super.didUpdateWidget(viejo);
     if (widget.valor != null && !identical(viejo.tirada, widget.tirada)) {
+      if (widget.sonarAlRodar) Sonidos.tocar(Sonido.tirarDados);
       if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return;
       _rodar();
     }
