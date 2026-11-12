@@ -10,6 +10,7 @@ class JugadorEnLinea {
   final String usuario;
   final bool conectado;
   final bool listo;
+  final bool preparado;
   final int puntos;
   final bool jugoRonda;
   final bool terminado;
@@ -22,6 +23,7 @@ class JugadorEnLinea {
     required this.usuario,
     this.conectado = true,
     this.listo = false,
+    this.preparado = false,
     this.puntos = 0,
     this.jugoRonda = false,
     this.terminado = false,
@@ -36,6 +38,7 @@ class JugadorEnLinea {
     usuario: json['usuario'] as String,
     conectado: json['conectado'] as bool? ?? true,
     listo: json['listo'] as bool? ?? false,
+    preparado: json['preparado'] as bool? ?? false,
     puntos: json['puntos'] as int? ?? 0,
     jugoRonda: json['jugoRonda'] as bool? ?? false,
     terminado: json['terminado'] as bool? ?? false,
@@ -65,6 +68,7 @@ class SalaEnLinea {
   final int ronda;
   final Dados? dados;
   final int? segundosRonda;
+  final bool conReloj;
   final int? metaPuntos;
   final int maximoJugadores;
   final List<JugadorEnLinea> jugadores;
@@ -80,6 +84,7 @@ class SalaEnLinea {
     this.ronda = 0,
     this.dados,
     this.segundosRonda,
+    this.conReloj = true,
     this.metaPuntos,
     this.maximoJugadores = 5,
     this.jugadores = const [],
@@ -98,6 +103,7 @@ class SalaEnLinea {
       ronda: json['ronda'] as int? ?? 0,
       dados: dados == null ? null : Dados(dados[0] as int, dados[1] as int),
       segundosRonda: json['segundosRonda'] as int?,
+      conReloj: json['conReloj'] as bool? ?? true,
       metaPuntos: json['metaPuntos'] as int?,
       maximoJugadores: json['maximoJugadores'] as int? ?? 2,
       jugadores: [
@@ -131,6 +137,8 @@ class SalaEnLinea {
     for (final j in jugadores)
       if (!j.fuera && j.usuario.toLowerCase() != usuario.toLowerCase()) j,
   ];
+
+  bool get todosListos => jugadores.every((j) => j.preparado);
 
   bool get variosRivales => jugadores.length > 2;
 
