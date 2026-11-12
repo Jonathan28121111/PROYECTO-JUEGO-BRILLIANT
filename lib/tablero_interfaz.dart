@@ -27,6 +27,8 @@ class TableroInterfaz extends StatelessWidget {
 
   final Map<(int, int), List<MarcaZona>> marcas;
 
+  final Set<int> zonasApagadas;
+
   const TableroInterfaz({
     super.key,
     required this.tablero,
@@ -39,6 +41,7 @@ class TableroInterfaz extends StatelessWidget {
     this.alTocar,
     this.aceptaFicha,
     this.marcas = const {},
+    this.zonasApagadas = const {},
   });
 
   @override
@@ -80,6 +83,9 @@ class TableroInterfaz extends StatelessWidget {
                                 numeros[(fila, columna)] == null,
                             esPosible: posibles.contains((fila, columna)),
                             marcas: marcas[(fila, columna)] ?? const [],
+                            apagada: zonasApagadas.contains(
+                              tablero.zonasPorCelda[fila][columna],
+                            ),
                             alSoltar: (n) => alSoltar((fila, columna), n),
                             alQuitar: () => alQuitar((fila, columna)),
                             alTocar: tocar == null
@@ -112,6 +118,7 @@ class _Celda extends StatelessWidget {
   final VoidCallback? alTocar;
   final bool Function(int)? aceptaFicha;
   final List<MarcaZona> marcas;
+  final bool apagada;
 
   const _Celda({
     required this.tipo,
@@ -124,6 +131,7 @@ class _Celda extends StatelessWidget {
     required this.alTocar,
     this.aceptaFicha,
     this.marcas = const [],
+    this.apagada = false,
   });
 
   @override
@@ -138,10 +146,13 @@ class _Celda extends StatelessWidget {
       );
     }
 
-    final color = colorDe(zona);
+    final color = apagada ? colorApagado(colorDe(zona)) : colorDe(zona);
     final colorTexto = colorTextoSobre(color);
 
-    final celda = Container(
+    final celda = AnimatedContainer(
+      key: apagada ? const Key('celda_apagada') : null,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: color,
         border: Border.all(color: Colors.black, width: 1),

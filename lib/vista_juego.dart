@@ -8,6 +8,7 @@ import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
+import 'sonidos.dart';
 
 class VistaJuego extends StatelessWidget {
   final Tablero tablero;
@@ -31,6 +32,8 @@ class VistaJuego extends StatelessWidget {
 
   final Map<(int, int), List<MarcaZona>> marcas;
 
+  final Set<int>? zonasApagadas;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -47,13 +50,14 @@ class VistaJuego extends StatelessWidget {
     this.instruccion,
     this.puntos,
     this.marcas = const {},
+    this.zonasApagadas,
   });
 
   String get _instruccion {
     if (instruccion case final texto?) return texto;
     if (resuelto) return '¡Tablero resuelto!';
-    if (dados == null) return 'Tira los dados para jugar';
-    if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
+    if (dados == null) return 'Tirando los dados…';
+    if (puedeTirar) return 'Con estos dados no hay jugada: se tiran de nuevo…';
     if (elegido == null) return 'Elige cuál de los dos números vas a escribir';
     if (posibles.isEmpty) {
       return 'Con ese número no hay jugada: prueba con el otro';
@@ -64,12 +68,21 @@ class VistaJuego extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tirada = dados;
-    final elegir =
+    final elegirSinSonido =
         alElegir ??
         (int n) => context.read<TableroBloc>().add(NumeroElegido(n));
-    final colocar =
+    final colocarSinSonido =
         alColocar ??
         (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
+    void elegir(int n) {
+      Sonidos.tocar(Sonido.elegirDado);
+      elegirSinSonido(n);
+    }
+
+    void colocar(int f, int c) {
+      Sonidos.tocar(Sonido.colocar);
+      colocarSinSonido(f, c);
+    }
 
     final numeros = <(int, int), int>{};
     for (var fila = 0; fila < tablero.valores.length; fila++) {
@@ -97,6 +110,9 @@ class VistaJuego extends StatelessWidget {
           alQuitar: (_) {},
           alTocar: (celda) => colocar(celda.$1, celda.$2),
           marcas: marcas,
+          zonasApagadas:
+              zonasApagadas ??
+              {for (final zona in tablero.zonasCompletas()) zona.id},
         );
         final (izquierda, derecha) = reglasDe(nivel);
 
@@ -111,6 +127,7 @@ class VistaJuego extends StatelessWidget {
             children: [
               DadoAnimado(
                 key: const Key('dado_1'),
+                sonarAlRodar: true,
                 valor: tirada?.primero,
                 tirada: tirada,
                 seleccionado: tirada != null && elegido == tirada.primero,
