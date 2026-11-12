@@ -6,6 +6,7 @@ import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
+import 'sonidos.dart';
 
 const Color verdePastel = Color(0xFFA5D6A7);
 const Color verdePastelClaro = Color(0xFFEAF7EA);
@@ -34,6 +35,7 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
     if (!_acepta(celda, numero)) {
       return;
     }
+    Sonidos.tocar(Sonido.colocar);
     setState(() {
       numeros.removeWhere((_, puesto) => puesto == numero);
       numeros[celda] = numero;
@@ -75,6 +77,7 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
       alSoltar: _soltar,
       alQuitar: _quitar,
     );
+    final pista = _Pista(completo: completo);
     final fichas = FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
@@ -155,7 +158,13 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: Column(
-                    children: [fichas, const SizedBox(height: 12), boton],
+                    children: [
+                      pista,
+                      const SizedBox(height: 10),
+                      fichas,
+                      const SizedBox(height: 12),
+                      boton,
+                    ],
                   ),
                 ),
               ),
@@ -185,34 +194,40 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                 const SizedBox(width: 16),
                 SizedBox(
                   width: 216,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.center,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (var n = 1; n <= 6; n++)
-                            usados.contains(n)
-                                ? const _Hueco()
-                                : _Ficha(
-                                    numero: n,
-                                    alEmpezar: () =>
-                                        setState(() => arrastrando = true),
-                                    alTerminar: () =>
-                                        setState(() => arrastrando = false),
-                                  ),
+                          pista,
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              for (var n = 1; n <= 6; n++)
+                                usados.contains(n)
+                                    ? const _Hueco()
+                                    : _Ficha(
+                                        numero: n,
+                                        alEmpezar: () =>
+                                            setState(() => arrastrando = true),
+                                        alTerminar: () =>
+                                            setState(() => arrastrando = false),
+                                      ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _BotonProgreso(
+                            puestos: numeros.length,
+                            total: total,
+                            alTocar: boton.alTocar,
+                            ancho: 216,
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      _BotonProgreso(
-                        puestos: numeros.length,
-                        total: total,
-                        alTocar: boton.alTocar,
-                        ancho: 216,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -244,7 +259,9 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              pista,
+              const SizedBox(height: 12),
               fichas,
               const SizedBox(height: 20),
               boton,
@@ -252,6 +269,57 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
           ),
         );
       },
+    );
+  }
+}
+
+class _Pista extends StatelessWidget {
+  final bool completo;
+
+  const _Pista({required this.completo});
+
+  @override
+  Widget build(BuildContext context) {
+    const estilo = TextStyle(
+      fontSize: 15,
+      height: 1.3,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF111827),
+    );
+    return Row(
+      key: const Key('pista_anclas'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          completo ? Icons.check_circle_outline : Icons.swipe_up_outlined,
+          size: 20,
+          color: const Color(0xFF374151),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text.rich(
+            completo
+                ? const TextSpan(
+                    text: 'Listo. Toca un número puesto para quitarlo.',
+                  )
+                : const TextSpan(
+                    text: 'Arrastra cada número a una casilla con ',
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(
+                          Icons.star,
+                          size: 18,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                    ],
+                  ),
+            textAlign: TextAlign.center,
+            style: estilo,
+          ),
+        ),
+      ],
     );
   }
 }
