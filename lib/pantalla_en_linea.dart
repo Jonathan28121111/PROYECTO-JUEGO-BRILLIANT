@@ -15,6 +15,7 @@ import 'pantalla_niveles.dart';
 import 'partida_bloc.dart';
 import 'sala_en_linea.dart';
 import 'sesion_bloc.dart';
+import 'sonidos.dart';
 import 'tablero_interfaz.dart';
 import 'vista_juego.dart';
 
@@ -245,6 +246,19 @@ class _Contenido extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Jugar en línea'),
             actions: [
+              ValueListenableBuilder<bool>(
+                valueListenable: Sonidos.activos,
+                builder: (_, activos, _) => IconButton(
+                  key: const Key('boton_sonido'),
+                  tooltip: activos ? 'Silenciar sonidos' : 'Activar sonidos',
+                  icon: Icon(
+                    activos
+                        ? Icons.volume_up_outlined
+                        : Icons.volume_off_outlined,
+                  ),
+                  onPressed: () => Sonidos.cambiar(!activos),
+                ),
+              ),
               if (_esAngosto(context))
                 IconButton(
                   key: const Key('boton_jugar_local'),
@@ -267,7 +281,19 @@ class _Contenido extends StatelessWidget {
           body: Column(
             children: [
               const BannerConexion(),
-              Expanded(child: _cuerpo(estado)),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _cuerpo(estado)),
+                    const Positioned(
+                      top: 6,
+                      left: 12,
+                      right: 12,
+                      child: AvisosDeZonas(),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -292,14 +318,160 @@ class _Contenido extends StatelessWidget {
 
 void _avisar(BuildContext context, String texto, {bool error = false}) {
   ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
+    ..removeCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(texto),
         backgroundColor: error ? _rojo : const Color(0xFF1F2937),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
+}
+
+class AvisosDeZonas extends StatefulWidget {
+  final Duration duracion;
+
+  const AvisosDeZonas({
+    super.key,
+    this.duracion = const Duration(milliseconds: 3500),
+  });
+
+  @override
+  State<AvisosDeZonas> createState() => _AvisosDeZonasState();
+}
+
+class _AvisosDeZonasState extends State<AvisosDeZonas> {
+  static const _maximo = 3;
+  final List<(int, EventoZona)> _visibles = [];
+  final List<Timer> _relojes = [];
+  int _siguiente = 0;
+
+  @override
+  void dispose() {
+    for (final reloj in _relojes) {
+      reloj.cancel();
+    }
+    super.dispose();
+  }
+
+  void _agregar(List<EventoZona> eventos) {
+    setState(() {
+      for (final evento in eventos) {
+        final id = _siguiente++;
+        _visibles.add((id, evento));
+        _relojes.add(
+          Timer(widget.duracion, () {
+            if (!mounted) return;
+            setState(() => _visibles.removeWhere((v) => v.$1 == id));
+          }),
+        );
+      }
+      while (_visibles.length > _maximo) {
+        _visibles.removeAt(0);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sala = context.select<PartidaBloc, SalaEnLinea?>(
+      (bloc) => bloc.state.sala,
+    );
+    return BlocListener<PartidaBloc, PartidaState>(
+      listenWhen: (antes, ahora) => ahora.numeroEventos != antes.numeroEventos,
+      listener: (_, estado) => _agregar(estado.eventos),
+      child: IgnorePointer(
+        child: Column(
+          key: const Key('avisos_zonas'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (id, evento) in _visibles)
+              Padding(
+                key: ValueKey(id),
+                padding: const EdgeInsets.only(bottom: 6),
+                child: _AvisoZona(
+                  evento: evento,
+                  color: colorJugador(sala?.indiceDe(evento.usuario) ?? 0),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AvisoZona extends StatelessWidget {
+  final EventoZona evento;
+  final Color color;
+
+  const _AvisoZona({required this.evento, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 200),
+      builder: (_, valor, hijo) => Opacity(
+        opacity: valor,
+        child: Transform.translate(
+          offset: Offset(0, (1 - valor) * -8),
+          child: hijo,
+        ),
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: evento.esTu ? color : _borde, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Text(
+                  evento.usuario.isEmpty
+                      ? '?'
+                      : evento.usuario[0].toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    height: 1,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  evento.texto,
+                  overflow: TextOverflow.ellipsis,
+                  style: _cuerpo.copyWith(
+                    fontSize: 14,
+                    fontWeight: evento.esTu ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Future<bool> confirmarRendicion(
@@ -762,6 +934,8 @@ class SalaDeEspera extends StatelessWidget {
     final bloc = context.watch<PartidaBloc>();
     final soyAnfitrion = sala.esAnfitrion(bloc.usuario);
     final completa = sala.jugadores.length >= 2;
+    final yo = sala.yo(bloc.usuario);
+    final estoyListo = yo?.preparado ?? false;
 
     final empezar = FilledButton(
       key: const Key('boton_empezar'),
@@ -774,6 +948,11 @@ class SalaDeEspera extends StatelessWidget {
           );
           return;
         }
+        if (!sala.todosListos) {
+          _avisar(context, 'Falta que todos den Listo para empezar.');
+          return;
+        }
+        Sonidos.tocar(Sonido.listo);
         context.read<PartidaBloc>().add(EmpezarPartida());
       },
       child: const Text('Empezar partida'),
@@ -852,6 +1031,7 @@ class SalaDeEspera extends StatelessWidget {
                 esTu:
                     jugador.usuario.toLowerCase() == bloc.usuario.toLowerCase(),
                 anfitrion: sala.esAnfitrion(jugador.usuario),
+                listo: jugador.preparado,
               ),
             if (!completa)
               const _Estado(icono: _Girando(), texto: 'Esperando a tu rival…'),
@@ -859,15 +1039,83 @@ class SalaDeEspera extends StatelessWidget {
         ),
         const SizedBox(height: 32),
 
-        if (soyAnfitrion)
-          _Acciones(principal: empezar, secundaria: salir)
-        else ...[
+        const Text('Opciones', style: _etiqueta),
+        const SizedBox(height: 8),
+        _Lista(
+          filas: [
+            Row(
+              children: [
+                const Icon(Icons.timer_outlined, color: _secundario),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reloj de 90 s por ronda',
+                        style: _cuerpo.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        sala.conReloj
+                            ? 'Si se acaba el tiempo, pasas esa ronda.'
+                            : 'Sin reloj: cada quien juega a su ritmo.',
+                        style: _apoyo,
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  key: const Key('switch_reloj'),
+                  value: sala.conReloj,
+                  onChanged: soyAnfitrion
+                      ? (valor) =>
+                            context.read<PartidaBloc>().add(CambiarReloj(valor))
+                      : null,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+
+        if (soyAnfitrion) ...[
+          if (completa && !sala.todosListos) ...[
+            const Text('Esperando a que todos den Listo.', style: _apoyo),
+            const SizedBox(height: 16),
+          ],
+          _Acciones(principal: empezar, secundaria: salir),
+        ] else ...[
           Text(
-            'Esperando a que ${sala.anfitrion} empiece la partida.',
+            estoyListo
+                ? 'Esperando a que ${sala.anfitrion} empiece la partida.'
+                : 'Da Listo cuando estés preparado para jugar.',
             style: _apoyo,
           ),
           const SizedBox(height: 16),
-          Align(alignment: Alignment.centerLeft, child: salir),
+          _Acciones(
+            principal: estoyListo
+                ? OutlinedButton(
+                    key: const Key('boton_listo'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: () =>
+                        context.read<PartidaBloc>().add(MarcarListo(false)),
+                    child: const Text('Ya no estoy listo'),
+                  )
+                : FilledButton(
+                    key: const Key('boton_listo'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: () {
+                      Sonidos.tocar(Sonido.listo);
+                      context.read<PartidaBloc>().add(MarcarListo(true));
+                    },
+                    child: const Text('Listo'),
+                  ),
+            secundaria: salir,
+          ),
         ],
       ],
     );
@@ -878,11 +1126,13 @@ class _FilaJugador extends StatelessWidget {
   final String nombre;
   final bool esTu;
   final bool anfitrion;
+  final bool listo;
 
   const _FilaJugador({
     required this.nombre,
     required this.esTu,
     required this.anfitrion,
+    this.listo = false,
   });
 
   @override
@@ -906,7 +1156,13 @@ class _FilaJugador extends StatelessWidget {
             style: _cuerpo.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
-        if (anfitrion) const Text('Anfitrión', style: _apoyo),
+        if (anfitrion)
+          const Text('Anfitrión', style: _apoyo)
+        else
+          _Punto(
+            texto: listo ? 'Listo' : 'Esperando',
+            color: listo ? _verde : _secundario,
+          ),
       ],
     );
   }
@@ -947,10 +1203,21 @@ class Marcadores extends StatelessWidget {
             color: _texto,
           ),
         ),
-        if (sala.fase == FaseSala.juego)
+        if (sala.fase == FaseSala.juego && !sala.conReloj)
+          const Text(
+            'Sin reloj',
+            key: Key('sin_reloj'),
+            style: TextStyle(fontSize: 12, height: 1.5, color: _secundario),
+          ),
+        if (sala.fase == FaseSala.juego && sala.conReloj)
           CuentaRegresiva(
             key: ValueKey(sala),
             segundos: sala.segundosRonda,
+            alTic: (s) {
+              if (s > 0 && s <= 5 && !(yo?.yaJugo ?? true)) {
+                Sonidos.tocar(Sonido.tic);
+              }
+            },
             builder: (s) => Text(
               s == null ? 'reloj en pausa' : '$s s',
               style: TextStyle(
@@ -1382,6 +1649,10 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
             instruccion: instruccion,
             puntos: yo?.puntos,
             marcas: marcas,
+            zonasApagadas: {
+              ...sala.zonasCompletadas,
+              for (final zona in tablero.zonasCompletas()) zona.id,
+            },
             alElegir: (n) => setState(() => _elegido = n),
             alColocar: (fila, columna) {
               final numero = _elegido;
@@ -1582,11 +1853,13 @@ class ResultadoPartida extends StatelessWidget {
 class CuentaRegresiva extends StatefulWidget {
   final int? segundos;
   final Widget Function(int? restantes) builder;
+  final void Function(int restantes)? alTic;
 
   const CuentaRegresiva({
     super.key,
     required this.segundos,
     required this.builder,
+    this.alTic,
   });
 
   @override
@@ -1616,6 +1889,7 @@ class _CuentaRegresivaState extends State<CuentaRegresiva> {
     _reloj = Timer.periodic(const Duration(seconds: 1), (reloj) {
       final quedan = (_restantes ?? 0) - 1;
       setState(() => _restantes = quedan < 0 ? 0 : quedan);
+      widget.alTic?.call(quedan);
       if (quedan <= 0) reloj.cancel();
     });
   }
