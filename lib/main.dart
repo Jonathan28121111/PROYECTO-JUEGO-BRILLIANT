@@ -6,16 +6,20 @@ import 'conexion_juego.dart';
 import 'pantalla_cuenta.dart';
 import 'pantalla_en_linea.dart';
 import 'pantalla_juego.dart';
+import 'servidor.dart';
 import 'sesion_bloc.dart';
+import 'sonidos.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await cargarServidorGuardado();
+  await Sonidos.cargar();
   runApp(const JuegoBrilliantApp());
 }
 
 class JuegoBrilliantApp extends StatelessWidget {
   final ClienteCuentas? cliente;
 
-  /// Cómo abrir la conexión de las partidas en línea (las pruebas la falsean).
   final AbrirConexion? abrirConexion;
 
   const JuegoBrilliantApp({super.key, this.cliente, this.abrirConexion});
@@ -48,7 +52,7 @@ class JuegoBrilliantApp extends StatelessWidget {
             builder: (context, estado) => switch (estado) {
               SinSesion() => const PantallaCuenta(),
               ConCuenta() || Invitado() => const PantallaJuego(
-                acciones: [BotonEnLinea(), MenuCuenta()],
+                acciones: [MenuCuenta()],
                 tarjetaEnLinea: TarjetaEnLinea(),
               ),
             },

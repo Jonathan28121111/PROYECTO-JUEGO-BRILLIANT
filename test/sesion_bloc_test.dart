@@ -87,23 +87,4 @@ void main() {
 
     expect(await despues(CerrarSesion()), isA<SinSesion>());
   });
-
-  test('borrar la cuenta con la contrasena correcta', () async {
-    await despues(Registrarse('jonathan', 'contrasena123'));
-
-    final estado = await despues(BorrarCuenta('contrasena123'));
-
-    expect(estado, isA<SinSesion>());
-    expect(servidor.cuentas, isEmpty);
-  });
-
-  test('borrar con la contrasena mala sigue dentro con el error', () async {
-    await despues(Registrarse('jonathan', 'contrasena123'));
-
-    final estado = await despues(BorrarCuenta('equivocada'));
-
-    expect(estado, isA<ConCuenta>());
-    expect((estado as ConCuenta).error, contains('no coincide'));
-    expect(servidor.cuentas, contains('jonathan'));
-  });
 }

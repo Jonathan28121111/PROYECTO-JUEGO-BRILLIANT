@@ -3,6 +3,7 @@
 #
 #   ./jugar.sh              compila si cambió el código o la IP y sirve el juego
 #   ./jugar.sh --compilar   fuerza a compilar de nuevo
+#   ./jugar.sh --iphone     instala el juego en el iPhone conectado (necesita Xcode)
 #
 # El juego se compila en modo release: va mucho más fluido que con
 # `flutter run`, que es modo depuración. Se apaga todo con Ctrl+C.
@@ -17,7 +18,9 @@ CARPETA_SERVIDOR="${CARPETA_SERVIDOR:-../servidor_brilliant}"
 escuchando() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 
 # La IP de esta compu en el Wi-Fi (macOS primero, luego Linux).
-IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null ||
+INTERFAZ="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' || true)"
+IP="$( { [[ -n "$INTERFAZ" ]] && ipconfig getifaddr "$INTERFAZ"; } 2>/dev/null ||
+  ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null ||
   hostname -I 2>/dev/null | awk '{print $1}' || true)"
 if [[ -z "$IP" ]]; then
   echo "No encontré tu IP en la red; solo se podrá jugar en esta compu."
@@ -62,7 +65,18 @@ else
   echo "✓ Servidor listo en el puerto $PUERTO_SERVIDOR."
 fi
 
-# 2. El juego: se compila si se pide, si cambió la IP o si hay código más
+# 2. En el iPhone: se instala la app y se queda corriendo con el servidor.
+if [[ "${1:-}" == "--iphone" ]]; then
+  if ! xcodebuild -version >/dev/null 2>&1; then
+    echo "Falta Xcode. Instálalo desde la App Store y ábrelo una vez."
+    exit 1
+  fi
+  echo "Instalando en el iPhone (servidor: $DIRECCION_SERVIDOR)..."
+  flutter run --release --dart-define=SERVIDOR="$DIRECCION_SERVIDOR"
+  exit 0
+fi
+
+# 3. El juego: se compila si se pide, si cambió la IP o si hay código más
 #    nuevo que la última compilación.
 MARCA="build/web/.servidor"
 motivo=""
@@ -88,6 +102,7 @@ echo
 echo "============================================================"
 echo "  En esta compu:       http://localhost:$PUERTO_JUEGO"
 echo "  En otra compu/cel:   http://$IP:$PUERTO_JUEGO"
+echo "  App del iPhone:      servidor $IP"
 echo "  (tienen que estar en el mismo Wi-Fi)"
 echo "  Ctrl+C para apagar todo."
 echo "============================================================"

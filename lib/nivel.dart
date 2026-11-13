@@ -154,8 +154,8 @@ const Nivel nivel4 = Nivel(
     8: Tipo.naranja1a3,
   },
   puntos: {
-    Tipo.naranja4a6: [6, 4, 2],
-    Tipo.naranja1a3: [6, 4, 2],
+    Tipo.naranja4a6: [6, 4, 3],
+    Tipo.naranja1a3: [6, 4, 3],
     Tipo.amarillo: [8, 6, 4],
     Tipo.rojo: [6, 4, 2],
     Tipo.azul: [8, 6, 4],

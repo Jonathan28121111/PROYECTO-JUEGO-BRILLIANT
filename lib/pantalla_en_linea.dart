@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'avatar_usuario.dart';
 import 'cliente_cuentas.dart';
+import 'colores.dart';
 import 'conexion_juego.dart';
 import 'dados.dart';
 import 'nivel.dart';
@@ -14,11 +15,9 @@ import 'pantalla_niveles.dart';
 import 'partida_bloc.dart';
 import 'sala_en_linea.dart';
 import 'sesion_bloc.dart';
+import 'sonidos.dart';
+import 'tablero_interfaz.dart';
 import 'vista_juego.dart';
-
-// ---------------------------------------------------------------------------
-// Estilo: un solo acento (el primario del tema), grises neutros, rojo solo
-// para lo destructivo. Pesos 400/500/600. Espacios de 4 en 4.
 
 const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
@@ -52,51 +51,17 @@ const TextStyle _etiqueta = TextStyle(
   color: _texto,
 );
 
-/// Ancho a partir del cual hay espacio para botones con texto en la barra.
 const double _anchoAmplio = 600;
 
 bool _esAngosto(BuildContext context) =>
     MediaQuery.sizeOf(context).width < _anchoAmplio;
 
-/// Cómo se abre la conexión con el servidor de partidas. Las pruebas la
-/// cambian por una falsa.
 class FabricaConexion {
   final AbrirConexion abrir;
 
   const FabricaConexion(this.abrir);
 }
 
-// ---------------------------------------------------------------------------
-// Entrada desde la portada
-
-/// El botón de la barra para entrar al modo en línea. En pantallas angostas
-/// se queda en ícono, con su tooltip.
-class BotonEnLinea extends StatelessWidget {
-  const BotonEnLinea({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (_esAngosto(context)) {
-      return IconButton(
-        key: const Key('boton_en_linea'),
-        tooltip: 'Jugar en línea',
-        icon: const Icon(Icons.groups_outlined),
-        onPressed: () => abrirModoEnLinea(context),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilledButton.tonalIcon(
-        key: const Key('boton_en_linea'),
-        icon: const Icon(Icons.groups_outlined, size: 20),
-        label: const Text('Jugar en línea'),
-        onPressed: () => abrirModoEnLinea(context),
-      ),
-    );
-  }
-}
-
-/// La tarjeta del modo en línea en la portada, junto a "Jugar solo".
 class TarjetaEnLinea extends StatelessWidget {
   const TarjetaEnLinea({super.key});
 
@@ -111,7 +76,7 @@ class TarjetaEnLinea extends StatelessWidget {
       titulo: 'Jugar en línea',
       descripcion: conCuenta
           ? 'Crea una sala y comparte el código, o únete a la de un amigo. '
-                'Los dos juegan con los mismos dados.'
+                'Todos juegan con los mismos dados.'
           : 'Inicia sesión para crear una sala o unirte a la de un amigo.',
       accion: conCuenta ? 'Jugar en línea' : 'Iniciar sesión para jugar',
       iconoAccion: conCuenta
@@ -122,7 +87,6 @@ class TarjetaEnLinea extends StatelessWidget {
   }
 }
 
-/// Dos jugadores frente a frente: la ilustración del modo en línea.
 class _Duelo extends StatelessWidget {
   const _Duelo();
 
@@ -200,9 +164,6 @@ Future<void> abrirModoEnLinea(BuildContext context) async {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Pantalla raíz
-
 class PantallaEnLinea extends StatelessWidget {
   final Cuenta cuenta;
   final AbrirConexion? abrir;
@@ -248,8 +209,8 @@ class _Contenido extends StatelessWidget {
         (sala.fase == FaseSala.anclas || sala.fase == FaseSala.juego) &&
         estado.conexion != EstadoConexion.expulsado;
     final rival = sala?.rival(context.read<PartidaBloc>().usuario)?.usuario;
+    final varios = sala?.variosRivales ?? false;
 
-    // maybePop respeta la confirmación si hay partida en curso.
     void volverALocal() => Navigator.of(context).maybePop();
 
     return MultiBlocListener(
@@ -271,7 +232,12 @@ class _Contenido extends StatelessWidget {
           if (salio) return;
           final navegador = Navigator.of(context);
           final bloc = context.read<PartidaBloc>();
-          if (await confirmarRendicion(context, saliendo: true, rival: rival)) {
+          if (await confirmarRendicion(
+            context,
+            saliendo: true,
+            rival: rival,
+            varios: varios,
+          )) {
             bloc.add(Rendirse());
             navegador.pop();
           }
@@ -280,6 +246,19 @@ class _Contenido extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Jugar en línea'),
             actions: [
+              ValueListenableBuilder<bool>(
+                valueListenable: Sonidos.activos,
+                builder: (_, activos, _) => IconButton(
+                  key: const Key('boton_sonido'),
+                  tooltip: activos ? 'Silenciar sonidos' : 'Activar sonidos',
+                  icon: Icon(
+                    activos
+                        ? Icons.volume_up_outlined
+                        : Icons.volume_off_outlined,
+                  ),
+                  onPressed: () => Sonidos.cambiar(!activos),
+                ),
+              ),
               if (_esAngosto(context))
                 IconButton(
                   key: const Key('boton_jugar_local'),
@@ -302,7 +281,19 @@ class _Contenido extends StatelessWidget {
           body: Column(
             children: [
               const BannerConexion(),
-              Expanded(child: _cuerpo(estado)),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _cuerpo(estado)),
+                    const Positioned(
+                      top: 6,
+                      left: 12,
+                      right: 12,
+                      child: AvisosDeZonas(),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -327,35 +318,185 @@ class _Contenido extends StatelessWidget {
 
 void _avisar(BuildContext context, String texto, {bool error = false}) {
   ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
+    ..removeCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(texto),
         backgroundColor: error ? _rojo : const Color(0xFF1F2937),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
       ),
     );
 }
 
-/// Confirmación de rendirse: nombra al rival, el botón dice lo que hace y el
-/// foco empieza en "Seguir jugando" para no rendirse por accidente.
+class AvisosDeZonas extends StatefulWidget {
+  final Duration duracion;
+
+  const AvisosDeZonas({
+    super.key,
+    this.duracion = const Duration(milliseconds: 3500),
+  });
+
+  @override
+  State<AvisosDeZonas> createState() => _AvisosDeZonasState();
+}
+
+class _AvisosDeZonasState extends State<AvisosDeZonas> {
+  static const _maximo = 3;
+  final List<(int, EventoZona)> _visibles = [];
+  final List<Timer> _relojes = [];
+  int _siguiente = 0;
+
+  @override
+  void dispose() {
+    for (final reloj in _relojes) {
+      reloj.cancel();
+    }
+    super.dispose();
+  }
+
+  void _agregar(List<EventoZona> eventos) {
+    setState(() {
+      for (final evento in eventos) {
+        final id = _siguiente++;
+        _visibles.add((id, evento));
+        _relojes.add(
+          Timer(widget.duracion, () {
+            if (!mounted) return;
+            setState(() => _visibles.removeWhere((v) => v.$1 == id));
+          }),
+        );
+      }
+      while (_visibles.length > _maximo) {
+        _visibles.removeAt(0);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sala = context.select<PartidaBloc, SalaEnLinea?>(
+      (bloc) => bloc.state.sala,
+    );
+    return BlocListener<PartidaBloc, PartidaState>(
+      listenWhen: (antes, ahora) => ahora.numeroEventos != antes.numeroEventos,
+      listener: (_, estado) => _agregar(estado.eventos),
+      child: IgnorePointer(
+        child: Column(
+          key: const Key('avisos_zonas'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (id, evento) in _visibles)
+              Padding(
+                key: ValueKey(id),
+                padding: const EdgeInsets.only(bottom: 6),
+                child: _AvisoZona(
+                  evento: evento,
+                  color: colorJugador(sala?.indiceDe(evento.usuario) ?? 0),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AvisoZona extends StatelessWidget {
+  final EventoZona evento;
+  final Color color;
+
+  const _AvisoZona({required this.evento, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 200),
+      builder: (_, valor, hijo) => Opacity(
+        opacity: valor,
+        child: Transform.translate(
+          offset: Offset(0, (1 - valor) * -8),
+          child: hijo,
+        ),
+      ),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: evento.esTu ? color : _borde, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Text(
+                  evento.usuario.isEmpty
+                      ? '?'
+                      : evento.usuario[0].toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    height: 1,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  evento.texto,
+                  overflow: TextOverflow.ellipsis,
+                  style: _cuerpo.copyWith(
+                    fontSize: 14,
+                    fontWeight: evento.esTu ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 Future<bool> confirmarRendicion(
   BuildContext context, {
   bool saliendo = false,
   String? rival,
+  bool varios = false,
 }) async {
   final contra = rival == null ? '' : ' ante $rival';
+  final consecuencia = varios
+      ? (saliendo
+            ? 'La partida sigue en curso. Si sales, quedas fuera y los demás '
+                  'siguen jugando.'
+            : 'Quedas fuera de la partida y los demás siguen jugando. No se '
+                  'puede deshacer.')
+      : (saliendo
+            ? 'La partida sigue en curso. Si sales, ${rival ?? 'tu rival'} '
+                  'gana la partida.'
+            : '${rival ?? 'Tu rival'} gana la partida. No se puede deshacer.');
   final respuesta = await showDialog<bool>(
     context: context,
     builder: (contexto) => AlertDialog(
       icon: const Icon(Icons.flag_outlined, color: _rojo, size: 32),
       title: Text(saliendo ? '¿Salir y rendirte$contra?' : '¿Rendirte$contra?'),
-      content: Text(
-        saliendo
-            ? 'La partida sigue en curso. Si sales, ${rival ?? 'tu rival'} '
-                  'gana la partida.'
-            : '${rival ?? 'Tu rival'} gana la partida. No se puede deshacer.',
-      ),
+      content: Text(consecuencia),
       actions: [
         TextButton(
           autofocus: true,
@@ -373,9 +514,6 @@ Future<bool> confirmarRendicion(
   );
   return respuesta ?? false;
 }
-
-// ---------------------------------------------------------------------------
-// Conexión
 
 class BannerConexion extends StatelessWidget {
   const BannerConexion({super.key});
@@ -426,7 +564,7 @@ class BannerConexion extends StatelessWidget {
                           '${espera == 1 ? 'segundo' : 'segundos'}.'
                     else
                       'Reconectando…',
-                    if (enPartida) 'Tienes 60 s para volver a la partida.',
+                    if (enPartida) 'Tienes 10 s para volver a la partida.',
                   ].join(' '),
                   style: const TextStyle(
                     fontSize: 14,
@@ -485,10 +623,6 @@ class _Expulsado extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Lobby: dos tarjetas con el mismo estilo que la portada, una para crear
-// la sala y otra para unirse con el código.
-
 class Lobby extends StatefulWidget {
   const Lobby({super.key});
 
@@ -532,8 +666,8 @@ class _LobbyState extends State<Lobby> {
       icono: Icons.add_rounded,
       titulo: 'Crear sala',
       descripcion:
-          'Elige el tablero. Te damos un código para invitar a tu '
-          'rival.',
+          'Elige el tablero. Te damos un código para invitar a tus '
+          'rivales.',
       contenido: [
         const Text('Tablero', style: _etiqueta),
         const SizedBox(height: 8),
@@ -664,7 +798,6 @@ class _PanelLobby extends StatelessWidget {
   final List<Widget> contenido;
   final Widget boton;
 
-  /// Lado a lado las dos tarjetas miden lo mismo y el botón baja al fondo.
   final bool estirar;
 
   const _PanelLobby({
@@ -717,7 +850,6 @@ class _PanelLobby extends StatelessWidget {
   }
 }
 
-/// Los tableros como miniaturas que se tocan para elegir.
 class _SelectorNivel extends StatelessWidget {
   final int elegido;
   final ValueChanged<int> alElegir;
@@ -792,10 +924,6 @@ class _Mayusculas extends TextInputFormatter {
   ) => ahora.copyWith(text: ahora.text.toUpperCase());
 }
 
-// ---------------------------------------------------------------------------
-// Sala de espera — patrón Detail / Record: nombre, metadatos, acciones y
-// secciones sin tarjetas alrededor.
-
 class SalaDeEspera extends StatelessWidget {
   final SalaEnLinea sala;
 
@@ -806,6 +934,8 @@ class SalaDeEspera extends StatelessWidget {
     final bloc = context.watch<PartidaBloc>();
     final soyAnfitrion = sala.esAnfitrion(bloc.usuario);
     final completa = sala.jugadores.length >= 2;
+    final yo = sala.yo(bloc.usuario);
+    final estoyListo = yo?.preparado ?? false;
 
     final empezar = FilledButton(
       key: const Key('boton_empezar'),
@@ -818,6 +948,11 @@ class SalaDeEspera extends StatelessWidget {
           );
           return;
         }
+        if (!sala.todosListos) {
+          _avisar(context, 'Falta que todos den Listo para empezar.');
+          return;
+        }
+        Sonidos.tocar(Sonido.listo);
         context.read<PartidaBloc>().add(EmpezarPartida());
       },
       child: const Text('Empezar partida'),
@@ -835,8 +970,8 @@ class SalaDeEspera extends StatelessWidget {
         const Text('Sala de espera', style: _tituloPagina),
         const SizedBox(height: 4),
         Text(
-          '${sala.datosNivel.nombre} · ${sala.jugadores.length} de 2 '
-          'jugadores',
+          '${sala.datosNivel.nombre} · ${sala.jugadores.length} de '
+          '${sala.maximoJugadores} jugadores',
           style: _apoyo,
         ),
         const SizedBox(height: 24),
@@ -880,7 +1015,10 @@ class SalaDeEspera extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text('Compártelo con tu rival para que se una.', style: _apoyo),
+        const Text(
+          'Compártelo con tus rivales para que se unan.',
+          style: _apoyo,
+        ),
         const SizedBox(height: 32),
 
         const Text('Jugadores', style: _etiqueta),
@@ -893,6 +1031,7 @@ class SalaDeEspera extends StatelessWidget {
                 esTu:
                     jugador.usuario.toLowerCase() == bloc.usuario.toLowerCase(),
                 anfitrion: sala.esAnfitrion(jugador.usuario),
+                listo: jugador.preparado,
               ),
             if (!completa)
               const _Estado(icono: _Girando(), texto: 'Esperando a tu rival…'),
@@ -900,15 +1039,83 @@ class SalaDeEspera extends StatelessWidget {
         ),
         const SizedBox(height: 32),
 
-        if (soyAnfitrion)
-          _Acciones(principal: empezar, secundaria: salir)
-        else ...[
+        const Text('Opciones', style: _etiqueta),
+        const SizedBox(height: 8),
+        _Lista(
+          filas: [
+            Row(
+              children: [
+                const Icon(Icons.timer_outlined, color: _secundario),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reloj de 90 s por ronda',
+                        style: _cuerpo.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        sala.conReloj
+                            ? 'Si se acaba el tiempo, pasas esa ronda.'
+                            : 'Sin reloj: cada quien juega a su ritmo.',
+                        style: _apoyo,
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  key: const Key('switch_reloj'),
+                  value: sala.conReloj,
+                  onChanged: soyAnfitrion
+                      ? (valor) =>
+                            context.read<PartidaBloc>().add(CambiarReloj(valor))
+                      : null,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+
+        if (soyAnfitrion) ...[
+          if (completa && !sala.todosListos) ...[
+            const Text('Esperando a que todos den Listo.', style: _apoyo),
+            const SizedBox(height: 16),
+          ],
+          _Acciones(principal: empezar, secundaria: salir),
+        ] else ...[
           Text(
-            'Esperando a que ${sala.anfitrion} empiece la partida.',
+            estoyListo
+                ? 'Esperando a que ${sala.anfitrion} empiece la partida.'
+                : 'Da Listo cuando estés preparado para jugar.',
             style: _apoyo,
           ),
           const SizedBox(height: 16),
-          Align(alignment: Alignment.centerLeft, child: salir),
+          _Acciones(
+            principal: estoyListo
+                ? OutlinedButton(
+                    key: const Key('boton_listo'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: () =>
+                        context.read<PartidaBloc>().add(MarcarListo(false)),
+                    child: const Text('Ya no estoy listo'),
+                  )
+                : FilledButton(
+                    key: const Key('boton_listo'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: () {
+                      Sonidos.tocar(Sonido.listo);
+                      context.read<PartidaBloc>().add(MarcarListo(true));
+                    },
+                    child: const Text('Listo'),
+                  ),
+            secundaria: salir,
+          ),
         ],
       ],
     );
@@ -919,11 +1126,13 @@ class _FilaJugador extends StatelessWidget {
   final String nombre;
   final bool esTu;
   final bool anfitrion;
+  final bool listo;
 
   const _FilaJugador({
     required this.nombre,
     required this.esTu,
     required this.anfitrion,
+    this.listo = false,
   });
 
   @override
@@ -947,16 +1156,18 @@ class _FilaJugador extends StatelessWidget {
             style: _cuerpo.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
-        if (anfitrion) const Text('Anfitrión', style: _apoyo),
+        if (anfitrion)
+          const Text('Anfitrión', style: _apoyo)
+        else
+          _Punto(
+            texto: listo ? 'Listo' : 'Esperando',
+            color: listo ? _verde : _secundario,
+          ),
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Partida
-
-/// Los dos jugadores con sus puntos y lo que están haciendo.
 class Marcadores extends StatelessWidget {
   final SalaEnLinea sala;
 
@@ -971,7 +1182,11 @@ class Marcadores extends StatelessWidget {
 
     Future<void> rendirse() async {
       final partida = context.read<PartidaBloc>();
-      if (await confirmarRendicion(context, rival: rival?.usuario)) {
+      if (await confirmarRendicion(
+        context,
+        rival: rival?.usuario,
+        varios: sala.variosRivales,
+      )) {
         partida.add(Rendirse());
       }
     }
@@ -988,10 +1203,21 @@ class Marcadores extends StatelessWidget {
             color: _texto,
           ),
         ),
-        if (sala.fase == FaseSala.juego)
+        if (sala.fase == FaseSala.juego && !sala.conReloj)
+          const Text(
+            'Sin reloj',
+            key: Key('sin_reloj'),
+            style: TextStyle(fontSize: 12, height: 1.5, color: _secundario),
+          ),
+        if (sala.fase == FaseSala.juego && sala.conReloj)
           CuentaRegresiva(
             key: ValueKey(sala),
             segundos: sala.segundosRonda,
+            alTic: (s) {
+              if (s > 0 && s <= 5 && !(yo?.yaJugo ?? true)) {
+                Sonidos.tocar(Sonido.tic);
+              }
+            },
             builder: (s) => Text(
               s == null ? 'reloj en pausa' : '$s s',
               style: TextStyle(
@@ -1001,8 +1227,91 @@ class Marcadores extends StatelessWidget {
               ),
             ),
           ),
+        if (sala.metaPuntos case final meta?)
+          Text(
+            'Meta: $meta pts',
+            key: const Key('meta_puntos'),
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.5,
+              color: _secundario,
+            ),
+          ),
       ],
     );
+
+    final botonRendirse = angosto
+        ? IconButton(
+            key: const Key('boton_rendirse'),
+            tooltip: 'Rendirse',
+            color: _rojo,
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: rendirse,
+          )
+        : TextButton.icon(
+            key: const Key('boton_rendirse'),
+            style: TextButton.styleFrom(
+              foregroundColor: _rojo,
+              minimumSize: const Size(0, 48),
+            ),
+            icon: const Icon(Icons.flag_outlined, size: 20),
+            label: const Text('Rendirse'),
+            onPressed: rendirse,
+          );
+
+    if (sala.variosRivales) {
+      final orden = [
+        ?yo,
+        for (final j in sala.jugadores)
+          if (!identical(j, yo)) j,
+      ];
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: angosto ? 12 : 16,
+          vertical: 8,
+        ),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: _borde)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 48),
+                Expanded(child: centro),
+                botonRendirse,
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              key: const Key('tira_jugadores'),
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final j in orden)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 20),
+                      child: Opacity(
+                        opacity: j.fuera ? 0.5 : 1,
+                        child: SizedBox(
+                          width: 112,
+                          child: _TarjetaJugador(
+                            jugador: j,
+                            sala: sala,
+                            esTu: identical(j, yo),
+                            compacta: true,
+                            alInicio: true,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: angosto ? 12 : 16, vertical: 8),
@@ -1034,25 +1343,7 @@ class Marcadores extends StatelessWidget {
               ),
             ),
           SizedBox(width: angosto ? 4 : 16),
-          if (angosto)
-            IconButton(
-              key: const Key('boton_rendirse'),
-              tooltip: 'Rendirse',
-              color: _rojo,
-              icon: const Icon(Icons.flag_outlined),
-              onPressed: rendirse,
-            )
-          else
-            TextButton.icon(
-              key: const Key('boton_rendirse'),
-              style: TextButton.styleFrom(
-                foregroundColor: _rojo,
-                minimumSize: const Size(0, 48),
-              ),
-              icon: const Icon(Icons.flag_outlined, size: 20),
-              label: const Text('Rendirse'),
-              onPressed: rendirse,
-            ),
+          botonRendirse,
         ],
       ),
     );
@@ -1064,30 +1355,51 @@ class _TarjetaJugador extends StatelessWidget {
   final SalaEnLinea sala;
   final bool esTu;
   final bool compacta;
+  final bool alInicio;
 
   const _TarjetaJugador({
     required this.jugador,
     required this.sala,
     required this.esTu,
     required this.compacta,
+    this.alInicio = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final alineacion = esTu ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+    final color = colorJugador(sala.indiceDe(jugador.usuario));
+    final alineacion = esTu || alInicio
+        ? CrossAxisAlignment.start
+        : CrossAxisAlignment.end;
     final datos = Column(
       crossAxisAlignment: alineacion,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          esTu ? '${jugador.usuario} (tú)' : jugador.usuario,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.5,
-            fontWeight: FontWeight.w600,
-            color: _texto,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (compacta) ...[
+              Container(
+                key: Key('color_${jugador.usuario}'),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                esTu ? '${jugador.usuario} (tú)' : jugador.usuario,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                  color: _texto,
+                ),
+              ),
+            ),
+          ],
         ),
         Text(
           '${jugador.puntos} ${jugador.puntos == 1 ? 'punto' : 'puntos'}',
@@ -1104,21 +1416,19 @@ class _TarjetaJugador extends StatelessWidget {
       mainAxisAlignment: esTu ? MainAxisAlignment.start : MainAxisAlignment.end,
       children: [
         if (esTu) ...[
-          const AvatarUsuario(tamano: 40),
+          AvatarUsuario(tamano: 40, color: color),
           const SizedBox(width: 12),
         ],
         Flexible(child: datos),
         if (!esTu) ...[
           const SizedBox(width: 12),
-          const AvatarUsuario(tamano: 40),
+          AvatarUsuario(tamano: 40, color: color),
         ],
       ],
     );
   }
 }
 
-/// Lo que está haciendo un jugador: un punto de color y el texto. El color
-/// nunca va solo, siempre con palabras.
 class _EstadoJugador extends StatelessWidget {
   final JugadorEnLinea jugador;
   final SalaEnLinea sala;
@@ -1127,6 +1437,9 @@ class _EstadoJugador extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (jugador.fuera) {
+      return const _Punto(texto: 'Fuera', color: _secundario);
+    }
     if (!jugador.conectado) {
       return CuentaRegresiva(
         key: ValueKey((sala, jugador.usuario)),
@@ -1192,7 +1505,8 @@ class _FaseAnclas extends StatelessWidget {
     final estado = context.watch<PartidaBloc>().state;
     final bloc = context.read<PartidaBloc>();
     final yo = sala.yo(bloc.usuario);
-    final rival = sala.rival(bloc.usuario);
+    final varios = sala.variosRivales;
+    final nombre = sala.nombreRivales(bloc.usuario);
     final enviadas = estado.anclasEnviadas || (yo?.listo ?? false);
 
     return Column(
@@ -1218,9 +1532,9 @@ class _FaseAnclas extends StatelessWidget {
                     const SizedBox(height: 8),
                     _Estado(
                       icono: const _Girando(),
-                      texto:
-                          'Esperando a que ${rival?.usuario ?? 'tu rival'} '
-                          'ponga las suyas…',
+                      texto: varios
+                          ? 'Esperando a que los demás pongan las suyas…'
+                          : 'Esperando a que $nombre ponga las suyas…',
                     ),
                   ],
                 )
@@ -1247,8 +1561,6 @@ class PartidaEnCurso extends StatefulWidget {
 class _PartidaEnCursoState extends State<PartidaEnCurso> {
   int? _elegido;
 
-  // El servidor manda un estado nuevo con cada cambio. Los dados solo deben
-  // rodar cuando cambia la ronda, no cada vez que llega un mensaje.
   int _ronda = -1;
   Dados? _dados;
 
@@ -1265,7 +1577,21 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
     final sala = widget.sala;
     final yo = sala.yo(bloc.usuario);
     final rival = sala.rival(bloc.usuario);
+    final varios = sala.variosRivales;
+    final caidos = [
+      for (final j in sala.rivales(bloc.usuario))
+        if (!j.conectado) j,
+    ];
     final nivel = sala.datosNivel;
+    final marcas = <(int, int), List<MarcaZona>>{};
+    for (final zona in sala.zonasCompletadas) {
+      final celda = _primeraCelda(nivel, zona);
+      if (celda == null) continue;
+      marcas[celda] = [
+        for (final j in sala.quienesCompletaron(zona))
+          MarcaZona(j.usuario, colorJugador(sala.indiceDe(j.usuario))),
+      ];
+    }
 
     if (sala.ronda != _ronda) {
       _ronda = sala.ronda;
@@ -1280,18 +1606,23 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
         ? const <(int, int)>[]
         : tablero.celdasPosibles(elegido, dados.companeroDe(elegido));
 
-    final nombreRival = rival?.usuario ?? 'tu rival';
+    final nombreRival = sala.nombreRivales(bloc.usuario);
     final String instruccion;
     if (estado.pendiente != null && !estado.conectado) {
       instruccion = 'Sin conexión: tu jugada se enviará al reconectar.';
     } else if (yo?.terminado ?? false) {
-      instruccion =
-          'Terminaste tu tablero. Esperando a que $nombreRival '
-          'termine el suyo…';
+      instruccion = varios
+          ? 'Terminaste tu tablero. Esperando a que los demás terminen…'
+          : 'Terminaste tu tablero. Esperando a que $nombreRival '
+                'termine el suyo…';
     } else if (yaJugue) {
-      instruccion = rival != null && !rival.conectado
-          ? '$nombreRival se desconectó. Esperando a que vuelva…'
-          : 'Esperando a que $nombreRival juegue…';
+      instruccion = switch (caidos) {
+        [final caido] when !varios || rival == null =>
+          '${caido.usuario} se desconectó. Esperando a que vuelva…',
+        [_, _, ...] => 'Hay jugadores desconectados. Esperando a que vuelvan…',
+        _ when varios => 'Esperando a que los demás jueguen…',
+        _ => 'Esperando a que $nombreRival juegue…',
+      };
     } else if (elegido == null) {
       instruccion = 'Elige cuál de los dos números vas a escribir';
     } else if (posibles.isEmpty) {
@@ -1303,8 +1634,8 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
     return Column(
       children: [
         Marcadores(sala: sala),
-        if (rival != null && !rival.conectado)
-          _AvisoRival(sala: sala, rival: rival),
+        for (final caido in caidos)
+          _AvisoRival(sala: sala, rival: caido, varios: varios),
         Expanded(
           child: VistaJuego(
             tablero: tablero,
@@ -1317,6 +1648,11 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
             dadosActivos: !yaJugue,
             instruccion: instruccion,
             puntos: yo?.puntos,
+            marcas: marcas,
+            zonasApagadas: {
+              ...sala.zonasCompletadas,
+              for (final zona in tablero.zonasCompletas()) zona.id,
+            },
             alElegir: (n) => setState(() => _elegido = n),
             alColocar: (fila, columna) {
               final numero = _elegido;
@@ -1331,16 +1667,29 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
   }
 }
 
+(int, int)? _primeraCelda(Nivel nivel, int zona) {
+  for (var fila = 0; fila < nivel.zonasPorCelda.length; fila++) {
+    final columna = nivel.zonasPorCelda[fila].indexOf(zona);
+    if (columna >= 0) return (fila, columna);
+  }
+  return null;
+}
+
 class _AvisoRival extends StatelessWidget {
   final SalaEnLinea sala;
   final JugadorEnLinea rival;
+  final bool varios;
 
-  const _AvisoRival({required this.sala, required this.rival});
+  const _AvisoRival({
+    required this.sala,
+    required this.rival,
+    this.varios = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: const Key('aviso_rival'),
+      key: Key(varios ? 'aviso_${rival.usuario}' : 'aviso_rival'),
       width: double.infinity,
       decoration: const BoxDecoration(
         color: Color(0xFFFEF2F2),
@@ -1353,6 +1702,9 @@ class _AvisoRival extends StatelessWidget {
         builder: (s) => Text(
           s == null
               ? '${rival.usuario} se desconectó.'
+              : varios
+              ? '${rival.usuario} se desconectó. Si no vuelve en $s s, '
+                    'queda fuera de la partida.'
               : '${rival.usuario} se desconectó. Si no vuelve en $s s, '
                     'ganas la partida.',
           textAlign: TextAlign.center,
@@ -1368,9 +1720,6 @@ class _AvisoRival extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Resultado — patrón Detail / Record.
-
 class ResultadoPartida extends StatelessWidget {
   final SalaEnLinea sala;
 
@@ -1383,6 +1732,14 @@ class ResultadoPartida extends StatelessWidget {
     final yo = sala.yo(usuario);
     final rival = sala.rival(usuario);
     final nombreRival = rival?.usuario ?? 'Tu rival';
+    final varios = sala.variosRivales;
+    final ganador = resultado?.ganador;
+    final puntosGanador = sala.jugadores
+        .where((j) => j.usuario.toLowerCase() == ganador?.toLowerCase())
+        .map((j) => j.puntos)
+        .firstOrNull;
+    final tabla = [...sala.jugadores]
+      ..sort((a, b) => b.puntos.compareTo(a.puntos));
     final gane = resultado?.ganador?.toLowerCase() == usuario.toLowerCase();
     final motivo = resultado?.motivo ?? MotivoFinal.empate;
 
@@ -1402,6 +1759,18 @@ class ResultadoPartida extends StatelessWidget {
     };
 
     final detalle = switch (motivo) {
+      MotivoFinal.puntos when varios && gane =>
+        'Llegaste primero con ${yo?.puntos ?? 0} puntos.',
+      MotivoFinal.puntos when varios =>
+        'Ganó $ganador con ${puntosGanador ?? 0} puntos. Tú hiciste '
+            '${yo?.puntos ?? 0}.',
+      MotivoFinal.empate when varios =>
+        'Hubo empate en el primer lugar con ${tabla.first.puntos} puntos.',
+      MotivoFinal.rendicion when varios && gane => 'Los demás se rindieron.',
+      MotivoFinal.abandono when varios && gane =>
+        'Los demás salieron de la partida.',
+      MotivoFinal.abandonoAmbos when varios =>
+        'Todos se desconectaron y nadie volvió a tiempo.',
       MotivoFinal.puntos =>
         'Terminaste con ${yo?.puntos ?? 0} puntos contra '
             '${rival?.puntos ?? 0} de $nombreRival.',
@@ -1431,14 +1800,17 @@ class ResultadoPartida extends StatelessWidget {
         const SizedBox(height: 24),
         _Lista(
           filas: [
-            for (final j in sala.jugadores)
+            for (final j in tabla)
               Row(
                 children: [
-                  const AvatarUsuario(tamano: 32),
+                  AvatarUsuario(
+                    tamano: 32,
+                    color: colorJugador(sala.indiceDe(j.usuario)),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      j.usuario,
+                      j.fuera ? '${j.usuario} (fuera)' : j.usuario,
                       style: _cuerpo.copyWith(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -1478,18 +1850,16 @@ class ResultadoPartida extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Piezas comunes
-
-/// Cuenta hacia atrás desde [segundos] de a un segundo.
 class CuentaRegresiva extends StatefulWidget {
   final int? segundos;
   final Widget Function(int? restantes) builder;
+  final void Function(int restantes)? alTic;
 
   const CuentaRegresiva({
     super.key,
     required this.segundos,
     required this.builder,
+    this.alTic,
   });
 
   @override
@@ -1519,6 +1889,7 @@ class _CuentaRegresivaState extends State<CuentaRegresiva> {
     _reloj = Timer.periodic(const Duration(seconds: 1), (reloj) {
       final quedan = (_restantes ?? 0) - 1;
       setState(() => _restantes = quedan < 0 ? 0 : quedan);
+      widget.alTic?.call(quedan);
       if (quedan <= 0) reloj.cancel();
     });
   }
@@ -1534,7 +1905,6 @@ class _CuentaRegresivaState extends State<CuentaRegresiva> {
       RepaintBoundary(child: widget.builder(_restantes));
 }
 
-/// Superficie L1: borde de 1px y filas separadas por líneas finas.
 class _Lista extends StatelessWidget {
   final List<Widget> filas;
 
@@ -1563,8 +1933,6 @@ class _Lista extends StatelessWidget {
   }
 }
 
-/// Acción principal y secundaria: en fila en pantallas anchas, apiladas en
-/// las angostas.
 class _Acciones extends StatelessWidget {
   final Widget principal;
   final Widget secundaria;
@@ -1583,7 +1951,6 @@ class _Acciones extends StatelessWidget {
   }
 }
 
-/// Un estado en línea: ícono pequeño y texto secundario.
 class _Estado extends StatelessWidget {
   final Widget icono;
   final String texto;
@@ -1620,7 +1987,6 @@ class _Girando extends StatelessWidget {
   }
 }
 
-/// Columna de contenido con ancho máximo y margen de 16 px.
 class _Columna extends StatelessWidget {
   final double ancho;
   final bool centrada;

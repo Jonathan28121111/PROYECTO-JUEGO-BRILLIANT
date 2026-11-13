@@ -1,16 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'pantalla_anclas.dart';
 import 'pantalla_niveles.dart';
+import 'sonidos.dart';
 import 'tablero_bloc.dart';
 import 'vista_juego.dart';
 
 class PantallaJuego extends StatefulWidget {
   final List<Widget> acciones;
 
-  /// La tarjeta del modo en línea. Con ella la portada pregunta primero
-  /// cómo se quiere jugar.
   final Widget? tarjetaEnLinea;
 
   const PantallaJuego({
@@ -24,8 +25,48 @@ class PantallaJuego extends StatefulWidget {
 }
 
 class _PantallaJuegoState extends State<PantallaJuego> {
-  /// Ya se eligió jugar solo: se ven los tableros y no los modos.
   bool _viendoTableros = false;
+  int? _zonasCompletas;
+  Timer? _tiradaAutomatica;
+
+  static const esperaPrimeraTirada = Duration(milliseconds: 600);
+  static const esperaSinJugada = Duration(milliseconds: 1800);
+
+  @override
+  void dispose() {
+    _tiradaAutomatica?.cancel();
+    super.dispose();
+  }
+
+  void _tirarSolo(TableroBloc bloc, TableroState estado) {
+    _tiradaAutomatica?.cancel();
+    _tiradaAutomatica = null;
+    if (estado is! TableroEnJuego || !estado.puedeTirar) return;
+    _tiradaAutomatica = Timer(
+      estado.dados == null ? esperaPrimeraTirada : esperaSinJugada,
+      () => bloc.add(DadosTirados()),
+    );
+  }
+
+  void _sonar(TableroState estado) {
+    switch (estado) {
+      case TableroSinIniciar():
+        _zonasCompletas = null;
+      case TableroEnJuego(:final tablero):
+        final cuantas = tablero.zonasCompletas().length;
+        final antes = _zonasCompletas;
+        if (antes != null && cuantas > antes) {
+          Sonidos.tocar(
+            Sonido.zonaCompletada,
+            retraso: const Duration(milliseconds: 180),
+          );
+        }
+        _zonasCompletas = cuantas;
+      case TableroResuelto():
+        Sonidos.tocar(Sonido.ganar);
+        _zonasCompletas = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +75,11 @@ class _PantallaJuegoState extends State<PantallaJuego> {
 
     return BlocProvider(
       create: (_) => TableroBloc(),
-      child: BlocBuilder<TableroBloc, TableroState>(
+      child: BlocConsumer<TableroBloc, TableroState>(
+        listener: (context, estado) {
+          _sonar(estado);
+          _tirarSolo(context.read<TableroBloc>(), estado);
+        },
         builder: (context, estado) {
           final enSeleccion =
               estado is TableroSinIniciar && estado.nivel == null;
@@ -59,7 +104,6 @@ class _PantallaJuegoState extends State<PantallaJuego> {
             appBar: AppBar(
               leadingWidth: atras == null ? null : (ancho ? 136 : 56),
               leading: atras,
-              title: const Text('Juego Brilliant'),
               actions: widget.acciones,
             ),
             body: switch (estado) {
@@ -79,6 +123,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                 posibles: juego.posibles,
                 puedeTirar: juego.puedeTirar,
                 nivel: juego.nivel,
+                conBotonTirar: false,
               ),
               TableroResuelto(:final tablero, :final nivel) => VistaJuego(
                 tablero: tablero,
@@ -130,8 +175,6 @@ class _BotonAtras extends StatelessWidget {
   }
 }
 
-/// Vuelve a la selección de tableros. Si hay una partida a medias, antes
-/// pregunta, porque lo que lleva el tablero se pierde.
 class BotonSalirTablero extends StatelessWidget {
   final TableroState estado;
   final bool conTexto;

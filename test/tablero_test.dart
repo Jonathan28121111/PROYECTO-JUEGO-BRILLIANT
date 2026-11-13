@@ -18,8 +18,11 @@ void main() {
       final tablero = Tablero.nivel1();
       for (final fila in tablero.zonasPorCelda) {
         for (final id in fila) {
-          expect(tablero.coloresPorZona.containsKey(id), true,
-              reason: 'la zona $id no tiene color');
+          expect(
+            tablero.coloresPorZona.containsKey(id),
+            true,
+            reason: 'la zona $id no tiene color',
+          );
         }
       }
     });
@@ -98,7 +101,11 @@ void main() {
 
     test('todas las zonas del tablero completo son válidas', () {
       for (final zona in Tablero.nivel1().zonas()) {
-        expect(zona.esValida(), true, reason: 'la zona ${zona.id} no es válida');
+        expect(
+          zona.esValida(),
+          true,
+          reason: 'la zona ${zona.id} no es válida',
+        );
       }
     });
   });
@@ -106,7 +113,6 @@ void main() {
   group('esValido', () {
     test('es falso si una zona queda inválida', () {
       final tablero = Tablero.nivel1();
-      // La zona azul (id 3) solo admite un valor distinto entre sus celdas.
       tablero.valores[0][2] = 5;
       expect(tablero.esValido(), false);
     });
@@ -118,20 +124,20 @@ void main() {
     });
   });
 
-    group('tieneVecinoCon', () {
+  group('tieneVecinoCon', () {
     Tablero cruz() => Tablero(
-          [
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-          ],
-          {1: Tipo.verde},
-          [
-            [6, 5, null],
-            [3, null, 4],
-            [null, 2, null],
-          ],
-        );
+      [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ],
+      {1: Tipo.verde},
+      [
+        [6, 5, null],
+        [3, null, 4],
+        [null, 2, null],
+      ],
+    );
 
     test('encuentra el numero en las cuatro direcciones', () {
       final tablero = cruz();
@@ -152,18 +158,18 @@ void main() {
 
   group('celdasPosibles', () {
     Tablero conZona(Tipo tipo) => Tablero(
-          [
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-          ],
-          {1: tipo},
-          [
-            [null, 5, null],
-            [3, null, 4],
-            [null, 2, null],
-          ],
-        );
+      [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+      ],
+      {1: tipo},
+      [
+        [null, 5, null],
+        [3, null, 4],
+        [null, 2, null],
+      ],
+    );
 
     test('solo las vacias que tocan al companero', () {
       expect(conZona(Tipo.verde).celdasPosibles(1, 5), [
@@ -178,33 +184,31 @@ void main() {
     });
 
     test('descarta las que romperian la regla de la zona', () {
-      // La zona roja ya tiene un 3, así que otro 3 no entra en ningún lado.
       expect(conZona(Tipo.rojo).celdasPosibles(3, 5), isEmpty);
       expect(conZona(Tipo.rojo).celdasPosibles(1, 5), hasLength(3));
     });
   });
-    group('puntaje', () {
+  group('puntaje', () {
     test('el tablero vacio no suma nada', () {
       expect(Tablero.nivel1Inicial().puntos, 0);
       expect(Tablero.nivel1Inicial().zonasCompletas(), isEmpty);
     });
 
     test('el tablero resuelto suma las nueve zonas', () {
-      // amarilla 8, verdes 4+4, azules 7+7, moradas 6+6, rojas 6+6
       expect(Tablero.nivel1().puntos, 54);
       expect(Tablero.nivel1().zonasCompletas(), hasLength(9));
     });
 
     test('una zona a la que le falta una casilla no esta completa', () {
       final tablero = Tablero.nivel1();
-      tablero.valores[0][2] = null; // una casilla de la zona azul 3
+      tablero.valores[0][2] = null;
       expect(tablero.zonaCompleta(3), false);
       expect(tablero.puntos, 54 - 7);
     });
 
     test('una zona llena pero invalida no suma', () {
       final tablero = Tablero.nivel1();
-      tablero.valores[0][2] = 5; // rompe la zona azul 3, que pide todos iguales
+      tablero.valores[0][2] = 5;
       expect(tablero.zonaCompleta(3), true);
       expect(tablero.puntos, 54 - 7);
     });

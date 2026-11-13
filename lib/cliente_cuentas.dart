@@ -2,10 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-const String direccionServidor = String.fromEnvironment(
-  'SERVIDOR',
-  defaultValue: 'http://localhost:8080',
-);
+import 'servidor.dart';
 
 class Cuenta {
   final String usuario;
@@ -30,12 +27,14 @@ class ErrorCuenta implements Exception {
 }
 
 class ClienteCuentas {
-  final Uri base;
+  final String? _base;
   final http.Client _http;
 
   ClienteCuentas({Uri? base, http.Client? cliente})
-    : base = base ?? Uri.parse(direccionServidor),
+    : _base = base?.toString(),
       _http = cliente ?? http.Client();
+
+  Uri get base => Uri.parse(_base ?? servidorActual.value);
 
   Future<Cuenta> registrar(String usuario, String contrasena) =>
       _entrar('/registro', usuario, contrasena);
@@ -45,15 +44,6 @@ class ClienteCuentas {
 
   Future<void> cerrarSesion(String token) async {
     await _pedir('DELETE', '/sesion', token: token);
-  }
-
-  Future<void> borrarCuenta(String token, String contrasena) async {
-    await _pedir(
-      'DELETE',
-      '/cuenta',
-      token: token,
-      cuerpo: {'contrasena': contrasena},
-    );
   }
 
   void cerrar() => _http.close();
@@ -89,7 +79,11 @@ class ClienteCuentas {
     try {
       respuesta = await http.Response.fromStream(await _http.send(peticion));
     } on Exception {
-      throw ErrorCuenta.sinConexion;
+      throw ErrorCuenta(
+        ErrorCuenta.sinConexion.clave,
+        'No se pudo conectar con el servidor en ${base.authority}. Revisa '
+        'que esté prendido y que estés en la misma red.',
+      );
     }
 
     final json = _decodificar(respuesta.body);

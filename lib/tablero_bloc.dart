@@ -22,7 +22,6 @@ class NivelElegido extends TableroEvent {
 
 class DadosTirados extends TableroEvent {}
 
-/// Deja el tablero actual y vuelve a la selección de niveles.
 class VolverAlInicio extends TableroEvent {}
 
 class NumeroElegido extends TableroEvent {
@@ -97,8 +96,8 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
   Nivel _nivel = nivel1;
 
   TableroBloc({Random? azar})
-      : _azar = azar ?? Random(),
-        super(const TableroSinIniciar()) {
+    : _azar = azar ?? Random(),
+      super(const TableroSinIniciar()) {
     on<VolverAlInicio>((event, emit) {
       _nivel = nivel1;
       emit(const TableroSinIniciar());
@@ -124,11 +123,13 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
       if (!actual.puedeTirar) {
         return;
       }
-      emit(TableroEnJuego(
-        actual.tablero,
-        dados: Dados.tirar(_azar),
-        nivel: _nivel,
-      ));
+      emit(
+        TableroEnJuego(
+          actual.tablero,
+          dados: Dados.tirar(_azar),
+          nivel: _nivel,
+        ),
+      );
     });
 
     on<NumeroElegido>((event, emit) {
@@ -140,12 +141,14 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
       if (dados == null || !dados.contiene(event.numero)) {
         return;
       }
-      emit(TableroEnJuego(
-        actual.tablero,
-        dados: dados,
-        elegido: event.numero,
-        nivel: _nivel,
-      ));
+      emit(
+        TableroEnJuego(
+          actual.tablero,
+          dados: dados,
+          elegido: event.numero,
+          nivel: _nivel,
+        ),
+      );
     });
 
     on<NumeroColocado>((event, emit) {

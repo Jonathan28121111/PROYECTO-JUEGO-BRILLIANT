@@ -8,7 +8,6 @@ import 'package:pruebas_numeros/tablero_bloc.dart';
 import 'package:pruebas_numeros/tablero_interfaz.dart';
 import 'package:pruebas_numeros/tipo_zona.dart';
 
-
 void pantallaGrande(
   WidgetTester tester, {
   Size tamano = const Size(1400, 1100),
@@ -23,10 +22,7 @@ Widget montar(Widget hijo, {TableroBloc? bloc}) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
     home: bloc == null
-        ? BlocProvider<TableroBloc>(
-            create: (_) => TableroBloc(),
-            child: cuerpo,
-          )
+        ? BlocProvider<TableroBloc>(create: (_) => TableroBloc(), child: cuerpo)
         : BlocProvider<TableroBloc>.value(value: bloc, child: cuerpo),
   );
 }
@@ -72,19 +68,19 @@ Future<void> arrastrarFicha(
 }
 
 Finder enElTablero(String texto) => find.descendant(
-      of: find.byType(TableroInterfaz),
-      matching: find.text(texto),
-    );
+  of: find.byType(TableroInterfaz),
+  matching: find.text(texto),
+);
 
 Tablero tableroChico(Tipo tipo) => Tablero(
-      [
-        [1, 1, 1],
-      ],
-      {1: tipo},
-      [
-        [2, null, null],
-      ],
-    );
+  [
+    [1, 1, 1],
+  ],
+  {1: tipo},
+  [
+    [2, null, null],
+  ],
+);
 
 class AzarFijo implements Random {
   final List<int> valores;

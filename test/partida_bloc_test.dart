@@ -6,8 +6,6 @@ import 'package:pruebas_numeros/tablero.dart';
 
 import 'conexion_falsa.dart';
 
-/// Una casilla con un 5 al lado de (0, 1), que es verde: con los dados 3 y 5
-/// se puede escribir el 3 ahí.
 const anclaConJugada = [
   [0, 2, 5],
 ];
@@ -427,13 +425,10 @@ void main() {
       final tabla = tablaDePuntos(nivel1);
 
       expect(tabla.keys, hasLength(nivel1.coloresPorZona.length));
-      // La zona 1 del nivel 1 es amarilla: 8, 6 y 4 en orden de llegada.
       expect(tabla['1'], [8, 6, 4]);
     });
 
     test('una jugada que completa una zona la reporta', () async {
-      // Zona 1 del nivel 1: amarilla, casillas (0,0), (0,6), (3,3), (6,0),
-      // (6,6). Con cuatro puestas, la quinta la completa.
       await enJuego(
         dados: const [3, 5],
         mias: const [

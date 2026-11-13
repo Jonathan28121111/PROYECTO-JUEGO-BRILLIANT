@@ -2,16 +2,11 @@ import 'dart:async';
 
 import 'package:pruebas_numeros/conexion_juego.dart';
 
-/// Hace de servidor de partidas: guarda lo que manda el cliente y le
-/// contesta lo que la prueba quiera. Puede tirar la conexión o negarse a
-/// abrirla.
 class ServidorJuegoFalso {
   final List<ConexionFalsa> conexiones = [];
 
-  /// Si es true, los próximos intentos de conexión fallan.
   bool caido = false;
 
-  /// Si es true, contesta solo el saludo con la bienvenida.
   final bool saludarSolo;
   final String usuario;
 
@@ -29,7 +24,6 @@ class ServidorJuegoFalso {
 
   ConexionFalsa get actual => conexiones.last;
 
-  /// Todo lo que mandó el cliente, por todas sus conexiones.
   List<Map<String, Object?>> get recibidos => [
     for (final c in conexiones) ...c.enviados,
   ];
@@ -65,7 +59,6 @@ class ConexionFalsa implements ConexionJuego {
     if (!cerrada) _entrada.add(mensaje);
   }
 
-  /// Simula que se cortó la red.
   void caer() {
     if (cerrada) return;
     cerrada = true;
@@ -80,7 +73,6 @@ class ConexionFalsa implements ConexionJuego {
   }
 }
 
-/// Un estado de sala como el que manda el servidor.
 Map<String, Object?> estadoSala({
   String codigo = 'ABC234',
   int nivel = 1,
@@ -89,6 +81,8 @@ Map<String, Object?> estadoSala({
   int ronda = 0,
   List<int>? dados,
   int? segundosRonda,
+  int? metaPuntos = 26,
+  int maximoJugadores = 5,
   List<Map<String, Object?>>? jugadores,
   List<List<int>> mias = const [],
   Map<String, Object?>? resultado,
@@ -101,6 +95,8 @@ Map<String, Object?> estadoSala({
   'ronda': ronda,
   'dados': dados,
   'segundosRonda': segundosRonda,
+  'metaPuntos': metaPuntos,
+  'maximoJugadores': maximoJugadores,
   'jugadores': jugadores ?? [jugador('ana')],
   'mias': mias,
   'resultado': resultado,
@@ -113,6 +109,8 @@ Map<String, Object?> jugador(
   int puntos = 0,
   bool jugoRonda = false,
   bool terminado = false,
+  bool fuera = false,
+  Map<String, int> zonas = const {},
   int? segundosGracia,
 }) => {
   'usuario': usuario,
@@ -121,5 +119,7 @@ Map<String, Object?> jugador(
   'puntos': puntos,
   'jugoRonda': jugoRonda,
   'terminado': terminado,
+  'fuera': fuera,
+  'zonas': zonas,
   'segundosGracia': segundosGracia,
 };

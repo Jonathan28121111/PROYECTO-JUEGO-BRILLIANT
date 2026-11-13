@@ -10,32 +10,45 @@ class JugadorEnLinea {
   final String usuario;
   final bool conectado;
   final bool listo;
+  final bool preparado;
   final int puntos;
   final bool jugoRonda;
   final bool terminado;
+  final bool fuera;
+  final Map<int, int> zonas;
 
-  /// Segundos que le quedan para volver si está desconectado.
   final int? segundosGracia;
 
   const JugadorEnLinea({
     required this.usuario,
     this.conectado = true,
     this.listo = false,
+    this.preparado = false,
     this.puntos = 0,
     this.jugoRonda = false,
     this.terminado = false,
+    this.fuera = false,
+    this.zonas = const {},
     this.segundosGracia,
   });
 
-  bool get yaJugo => jugoRonda || terminado;
+  bool get yaJugo => jugoRonda || terminado || fuera;
 
   factory JugadorEnLinea.deJson(Map<String, Object?> json) => JugadorEnLinea(
     usuario: json['usuario'] as String,
     conectado: json['conectado'] as bool? ?? true,
     listo: json['listo'] as bool? ?? false,
+    preparado: json['preparado'] as bool? ?? false,
     puntos: json['puntos'] as int? ?? 0,
     jugoRonda: json['jugoRonda'] as bool? ?? false,
     terminado: json['terminado'] as bool? ?? false,
+    fuera: json['fuera'] as bool? ?? false,
+    zonas: {
+      for (final MapEntry(:key, :value)
+          in (json['zonas'] as Map? ?? const {}).entries)
+        if (int.tryParse('$key') case final zona? when value is int)
+          zona: value,
+    },
     segundosGracia: json['segundosGracia'] as int?,
   );
 }
@@ -47,7 +60,6 @@ class ResultadoEnLinea {
   const ResultadoEnLinea({required this.ganador, required this.motivo});
 }
 
-/// Lo que el servidor cuenta de una sala, visto por uno de sus jugadores.
 class SalaEnLinea {
   final String codigo;
   final int nivel;
@@ -56,9 +68,11 @@ class SalaEnLinea {
   final int ronda;
   final Dados? dados;
   final int? segundosRonda;
+  final bool conReloj;
+  final int? metaPuntos;
+  final int maximoJugadores;
   final List<JugadorEnLinea> jugadores;
 
-  /// Las casillas que puso este jugador: sus anclas y sus jugadas.
   final Map<(int, int), int> mias;
   final ResultadoEnLinea? resultado;
 
@@ -70,6 +84,9 @@ class SalaEnLinea {
     this.ronda = 0,
     this.dados,
     this.segundosRonda,
+    this.conReloj = true,
+    this.metaPuntos,
+    this.maximoJugadores = 5,
     this.jugadores = const [],
     this.mias = const {},
     this.resultado,
@@ -86,6 +103,9 @@ class SalaEnLinea {
       ronda: json['ronda'] as int? ?? 0,
       dados: dados == null ? null : Dados(dados[0] as int, dados[1] as int),
       segundosRonda: json['segundosRonda'] as int?,
+      conReloj: json['conReloj'] as bool? ?? true,
+      metaPuntos: json['metaPuntos'] as int?,
+      maximoJugadores: json['maximoJugadores'] as int? ?? 2,
       jugadores: [
         for (final j in (json['jugadores'] as List? ?? const []))
           JugadorEnLinea.deJson(j as Map<String, Object?>),
@@ -112,7 +132,48 @@ class SalaEnLinea {
       anfitrion.toLowerCase() == usuario.toLowerCase();
 
   JugadorEnLinea? yo(String usuario) => _buscar(usuario, mismo: true);
-  JugadorEnLinea? rival(String usuario) => _buscar(usuario, mismo: false);
+
+  List<JugadorEnLinea> rivales(String usuario) => [
+    for (final j in jugadores)
+      if (!j.fuera && j.usuario.toLowerCase() != usuario.toLowerCase()) j,
+  ];
+
+  bool get todosListos => jugadores.every((j) => j.preparado);
+
+  bool get variosRivales => jugadores.length > 2;
+
+  JugadorEnLinea? rival(String usuario) =>
+      variosRivales ? null : _buscar(usuario, mismo: false);
+
+  int indiceDe(String usuario) => jugadores.indexWhere(
+    (j) => j.usuario.toLowerCase() == usuario.toLowerCase(),
+  );
+
+  List<JugadorEnLinea> quienesCompletaron(int zona) {
+    final quienes = [
+      for (final j in jugadores)
+        if (j.zonas.containsKey(zona)) j,
+    ];
+    quienes.sort((a, b) => a.zonas[zona]!.compareTo(b.zonas[zona]!));
+    return quienes;
+  }
+
+  Set<int> get zonasCompletadas => {for (final j in jugadores) ...j.zonas.keys};
+
+  int puntosDeZona(JugadorEnLinea jugador, int zona) {
+    final ronda = jugador.zonas[zona];
+    final tipo = datosNivel.coloresPorZona[zona];
+    if (ronda == null || tipo == null) return 0;
+    final valores = datosNivel.puntosDe(tipo);
+    final antes = jugadores
+        .where((otro) => !identical(otro, jugador))
+        .where((otro) => (otro.zonas[zona] ?? ronda) < ronda)
+        .length;
+    return valores[antes < valores.length ? antes : valores.length - 1];
+  }
+
+  String nombreRivales(String usuario) =>
+      rival(usuario)?.usuario ?? (variosRivales ? 'los demás' : 'tu rival');
 
   JugadorEnLinea? _buscar(String usuario, {required bool mismo}) {
     for (final j in jugadores) {
@@ -124,7 +185,6 @@ class SalaEnLinea {
   }
 }
 
-/// El tablero del nivel con las casillas ya puestas.
 Tablero tableroCon(Nivel nivel, Map<(int, int), int> casillas) {
   final tablero = Tablero.deNivel(nivel);
   casillas.forEach((celda, numero) {
@@ -137,19 +197,14 @@ Tablero tableroCon(Nivel nivel, Map<(int, int), int> casillas) {
   return tablero;
 }
 
-/// Los puntajes de cada zona en orden de llegada (`{"1": [8, 6, 4]}`): el
-/// servidor da el primero a quien completa la zona antes que su rival.
 Map<String, List<int>> tablaDePuntos(Nivel nivel) => {
   for (final zona in Tablero.deNivel(nivel).zonas()) '${zona.id}': zona.puntos,
 };
 
-/// Las zonas completas y válidas del tablero, para que el servidor sepa en
-/// qué ronda se completó cada una.
 List<int> zonasCompletas(Tablero tablero) => [
   for (final zona in tablero.zonasCompletas()) zona.id,
 ];
 
-/// Si con esos dados hay alguna casilla donde escribir.
 bool hayJugadaCon(Tablero tablero, Dados dados) =>
     tablero.celdasPosibles(dados.primero, dados.segundo).isNotEmpty ||
     tablero.celdasPosibles(dados.segundo, dados.primero).isNotEmpty;

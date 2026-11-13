@@ -2,20 +2,18 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'colores.dart';
 import 'conexion_juego.dart';
 import 'nivel.dart';
 import 'sala_en_linea.dart';
+import 'sonidos.dart';
 import 'tablero.dart';
-
-// ---------------------------------------------------------------------------
-// Eventos
+import 'tipo_zona.dart';
 
 sealed class PartidaEvent {}
 
-/// Abre la conexión (o la vuelve a abrir tras una caída).
 class Conectar extends PartidaEvent {}
 
-/// Reintenta ya, sin esperar a que se cumpla la espera.
 class ReintentarAhora extends PartidaEvent {}
 
 class CrearSala extends PartidaEvent {
@@ -28,12 +26,21 @@ class UnirseSala extends PartidaEvent {
   UnirseSala(this.codigo);
 }
 
-/// El jugador volvió a escribir en el campo del código: el error se va.
 class CorregirCodigo extends PartidaEvent {}
 
 class SalirSala extends PartidaEvent {}
 
 class EmpezarPartida extends PartidaEvent {}
+
+class CambiarReloj extends PartidaEvent {
+  final bool conReloj;
+  CambiarReloj(this.conReloj);
+}
+
+class MarcarListo extends PartidaEvent {
+  final bool listo;
+  MarcarListo(this.listo);
+}
 
 class EnviarAnclas extends PartidaEvent {
   final Tablero tablero;
@@ -59,12 +66,26 @@ class _ConexionPerdida extends PartidaEvent {
   _ConexionPerdida(this.conexion);
 }
 
-// ---------------------------------------------------------------------------
-// Estado
-
 enum EstadoConexion { conectando, conectado, reconectando, expulsado }
 
-/// Una jugada que ya se ve en el tablero pero el servidor no ha confirmado.
+class EventoZona {
+  final String usuario;
+  final bool esTu;
+  final Tipo tipo;
+  final int puntos;
+
+  const EventoZona({
+    required this.usuario,
+    required this.esTu,
+    required this.tipo,
+    required this.puntos,
+  });
+
+  String get texto => esTu
+      ? 'Completaste una zona ${nombreZona(tipo)} · +$puntos'
+      : '$usuario completó una zona ${nombreZona(tipo)} · +$puntos';
+}
+
 class JugadaPendiente {
   final int ronda;
   final int fila;
@@ -103,20 +124,19 @@ class PartidaState {
   final bool anclasEnviadas;
   final JugadaPendiente? pendiente;
 
-  /// Intentos de reconexión seguidos que han fallado.
   final int intentos;
   final int? segundosParaReintentar;
 
-  /// Un aviso para mostrar una vez. [numeroAviso] cambia con cada uno.
   final String? aviso;
   final bool avisoEsError;
   final int numeroAviso;
 
-  /// Por qué el servidor nos sacó (otra ventana, sesión vencida...).
   final String? motivoExpulsion;
 
-  /// Por qué no se pudo entrar con el código. Va debajo del campo.
   final String? errorCodigo;
+
+  final List<EventoZona> eventos;
+  final int numeroEventos;
 
   const PartidaState({
     this.conexion = EstadoConexion.conectando,
@@ -131,11 +151,12 @@ class PartidaState {
     this.numeroAviso = 0,
     this.motivoExpulsion,
     this.errorCodigo,
+    this.eventos = const [],
+    this.numeroEventos = 0,
   });
 
   bool get conectado => conexion == EstadoConexion.conectado;
 
-  /// Las casillas propias que hay que dibujar, contando la jugada pendiente.
   Map<(int, int), int> get casillas {
     final sala = this.sala;
     if (sala == null) return const {};
@@ -169,6 +190,8 @@ class PartidaState {
     numeroAviso: numeroAviso,
     motivoExpulsion: motivoExpulsion ?? this.motivoExpulsion,
     errorCodigo: errorCodigo == null ? this.errorCodigo : errorCodigo(),
+    eventos: eventos,
+    numeroEventos: numeroEventos,
   );
 
   PartidaState conAviso(String texto, {bool error = false}) => PartidaState(
@@ -184,18 +207,33 @@ class PartidaState {
     numeroAviso: numeroAviso + 1,
     motivoExpulsion: motivoExpulsion,
     errorCodigo: errorCodigo,
+    eventos: eventos,
+    numeroEventos: numeroEventos,
+  );
+
+  PartidaState conEventos(List<EventoZona> nuevos) => PartidaState(
+    conexion: conexion,
+    sala: sala,
+    cargando: cargando,
+    anclasEnviadas: anclasEnviadas,
+    pendiente: pendiente,
+    intentos: intentos,
+    segundosParaReintentar: segundosParaReintentar,
+    aviso: aviso,
+    avisoEsError: avisoEsError,
+    numeroAviso: numeroAviso,
+    motivoExpulsion: motivoExpulsion,
+    errorCodigo: errorCodigo,
+    eventos: nuevos,
+    numeroEventos: numeroEventos + 1,
   );
 }
-
-// ---------------------------------------------------------------------------
-// Bloc
 
 class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
   final String usuario;
   final String token;
   final AbrirConexion abrir;
 
-  /// Cuánto esperar antes de cada reintento; el último se repite.
   final List<Duration> esperas;
 
   ConexionJuego? _conexion;
@@ -223,8 +261,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     on<ReintentarAhora>((_, emit) {
       if (state.conexion == EstadoConexion.conectado) return;
       if (state.conexion == EstadoConexion.expulsado) {
-        // "Jugar en esta ventana": se vuelve a conectar y el servidor
-        // desplaza a la otra.
         emit(PartidaState(sala: state.sala, numeroAviso: state.numeroAviso));
       }
       _reintento?.cancel();
@@ -255,12 +291,16 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
       _pedir(emit, {'tipo': 'salir_sala'});
     });
     on<EmpezarPartida>((_, emit) => _pedir(emit, {'tipo': 'empezar'}));
+    on<CambiarReloj>(
+      (e, emit) => _pedir(emit, {'tipo': 'ajustes', 'conReloj': e.conReloj}),
+    );
+    on<MarcarListo>(
+      (e, emit) => _pedir(emit, {'tipo': 'preparado', 'valor': e.listo}),
+    );
     on<EnviarAnclas>(_alEnviarAnclas);
     on<ColocarNumero>(_alColocar);
     on<Rendirse>((_, emit) => _pedir(emit, {'tipo': 'rendirse'}));
   }
-
-  // -- Conexión ------------------------------------------------------------
 
   Future<void> _alConectar(Conectar _, Emitter<PartidaState> emit) async {
     if (_cerrando || state.conexion == EstadoConexion.expulsado) return;
@@ -305,7 +345,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     _suscripcion = null;
     if (_cerrando || state.conexion == EstadoConexion.expulsado) return;
     if (state.pendiente != null) _reenviarAlVolver = true;
-    // Un "pasar" que se mandó justo antes de la caída pudo perderse.
     _rondaPasada = null;
     _programarReintento(emit);
   }
@@ -327,9 +366,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     });
   }
 
-  /// Suelta la conexión actual sin esperar a que termine de cerrarse: con la
-  /// red caída el cierre de un WebSocket puede tardar mucho y no debe frenar
-  /// la reconexión.
   void _soltarConexion() {
     final suscripcion = _suscripcion;
     final vieja = _conexion;
@@ -338,8 +374,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     unawaited(suscripcion?.cancel());
     unawaited(vieja?.cerrar());
   }
-
-  // -- Mensajes del servidor -----------------------------------------------
 
   void _alRecibir(_MensajeRecibido e, Emitter<PartidaState> emit) {
     final m = e.mensaje;
@@ -392,6 +426,7 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         );
 
       case 'error':
+        Sonidos.tocar(Sonido.error);
         final clave = m['error'];
         if (clave == 'sin_sesion' || clave == 'sin_saludo') {
           _expulsar(
@@ -413,7 +448,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         }
         var nuevo = state;
         if (clave == 'ya_jugaste' || clave == 'ronda_equivocada') {
-          // La jugada no cuenta: el tablero vuelve a lo que dice el servidor.
           nuevo = nuevo.copyWith(pendiente: () => null);
         }
         if (clave == 'anclas_invalidas' || clave == 'fase_equivocada') {
@@ -428,8 +462,71 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     }
   }
 
+  void _sonarEstado(SalaEnLinea? antes, SalaEnLinea ahora) {
+    if (antes == null || antes.codigo != ahora.codigo) return;
+    if (ahora.fase == FaseSala.terminada && antes.fase != FaseSala.terminada) {
+      final gane =
+          ahora.resultado?.ganador?.toLowerCase() == usuario.toLowerCase();
+      Sonidos.tocar(gane ? Sonido.ganar : Sonido.perder);
+      return;
+    }
+    var mia = false;
+    var deOtro = false;
+    for (final jugador in ahora.jugadores) {
+      final previo = antes.jugadores
+          .where(
+            (j) => j.usuario.toLowerCase() == jugador.usuario.toLowerCase(),
+          )
+          .firstOrNull;
+      final nuevas = jugador.zonas.keys.where(
+        (z) => !(previo?.zonas.containsKey(z) ?? false),
+      );
+      if (nuevas.isEmpty) continue;
+      if (jugador.usuario.toLowerCase() == usuario.toLowerCase()) {
+        mia = true;
+      } else {
+        deOtro = true;
+      }
+    }
+    if (mia) {
+      Sonidos.tocar(Sonido.zonaCompletada);
+    } else if (deOtro) {
+      Sonidos.tocar(Sonido.zonaRival);
+    }
+  }
+
+  List<EventoZona> _zonasNuevas(SalaEnLinea? antes, SalaEnLinea ahora) {
+    if (antes == null || antes.codigo != ahora.codigo) return const [];
+    final eventos = <EventoZona>[];
+    for (final jugador in ahora.jugadores) {
+      final previo = antes.jugadores
+          .where(
+            (j) => j.usuario.toLowerCase() == jugador.usuario.toLowerCase(),
+          )
+          .firstOrNull;
+      final vistas = previo?.zonas.keys.toSet() ?? const <int>{};
+      final esTu = jugador.usuario.toLowerCase() == usuario.toLowerCase();
+      for (final zona in jugador.zonas.keys) {
+        if (vistas.contains(zona)) continue;
+        final tipo = ahora.datosNivel.coloresPorZona[zona];
+        if (tipo == null) continue;
+        eventos.add(
+          EventoZona(
+            usuario: jugador.usuario,
+            esTu: esTu,
+            tipo: tipo,
+            puntos: ahora.puntosDeZona(jugador, zona),
+          ),
+        );
+      }
+    }
+    return eventos;
+  }
+
   void _alEstado(SalaEnLinea sala, Emitter<PartidaState> emit) {
     _esperandoUnirse = false;
+    final zonas = _zonasNuevas(state.sala, sala);
+    _sonarEstado(state.sala, sala);
     var nuevo = state.copyWith(
       sala: () => sala,
       cargando: false,
@@ -461,11 +558,11 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
       }
     }
     emit(aviso == null ? nuevo : nuevo.conAviso(aviso, error: true));
+    if (zonas.isNotEmpty) emit(state.conEventos(zonas));
 
     _quizaPasar(emit);
   }
 
-  /// Si con los dados de la ronda no hay dónde escribir, se pasa solo.
   void _quizaPasar(Emitter<PartidaState> emit) {
     final sala = state.sala;
     final dados = sala?.dados;
@@ -503,8 +600,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     );
     _soltarConexion();
   }
-
-  // -- Acciones del jugador ------------------------------------------------
 
   void _pedir(Emitter<PartidaState> emit, Map<String, Object?> mensaje) {
     if (!state.conectado) {
@@ -587,7 +682,6 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     if (state.conectado) {
       _conexion?.enviar(jugada.mensaje);
     } else {
-      // Se manda en cuanto vuelva la conexión.
       _reenviarAlVolver = true;
     }
   }

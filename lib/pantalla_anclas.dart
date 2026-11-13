@@ -6,6 +6,7 @@ import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
+import 'sonidos.dart';
 
 const Color verdePastel = Color(0xFFA5D6A7);
 const Color verdePastelClaro = Color(0xFFEAF7EA);
@@ -14,8 +15,6 @@ const Color verdeTexto = Color(0xFF1B3D1E);
 class PantallaAnclas extends StatefulWidget {
   final Nivel nivel;
 
-  /// Qué hacer con el tablero ya anclado. Por defecto empieza la partida
-  /// local en el [TableroBloc]; en línea se le manda al servidor.
   final void Function(Tablero tablero)? alTerminar;
 
   const PantallaAnclas({super.key, this.nivel = nivel1, this.alTerminar});
@@ -36,6 +35,7 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
     if (!_acepta(celda, numero)) {
       return;
     }
+    Sonidos.tocar(Sonido.colocar);
     setState(() {
       numeros.removeWhere((_, puesto) => puesto == numero);
       numeros[celda] = numero;
@@ -68,79 +68,258 @@ class _PantallaAnclasState extends State<PantallaAnclas> {
   Widget build(BuildContext context) {
     final usados = numeros.values.toSet();
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final (izquierda, derecha) = reglasDe(widget.nivel);
+    final interfaz = TableroInterfaz(
+      tablero: tablero,
+      anclas: widget.nivel.anclas,
+      numeros: numeros,
+      arrastrando: arrastrando,
+      alSoltar: _soltar,
+      alQuitar: _quitar,
+    );
+    final pista = _Pista(completo: completo);
+    final fichas = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
+          for (var n = 1; n <= 6; n++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: usados.contains(n)
+                  ? const _Hueco()
+                  : _Ficha(
+                      numero: n,
+                      alEmpezar: () => setState(() => arrastrando = true),
+                      alTerminar: () => setState(() => arrastrando = false),
+                    ),
+            ),
+        ],
+      ),
+    );
+    final boton = _BotonProgreso(
+      puestos: numeros.length,
+      total: total,
+      alTocar: completo
+          ? () {
+              final listo = _tableroConAnclas();
+              final terminar = widget.alTerminar;
+              if (terminar != null) {
+                terminar(listo);
+              } else {
+                context.read<TableroBloc>().add(
+                  ValoresInicialesProporcionados(listo),
+                );
+              }
+            }
+          : null,
+    );
+
+    return LayoutBuilder(
+      builder: (context, espacio) {
+        if (espacio.maxWidth < 600) {
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: interfaz,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: PanelReglas(
+                              reglas: izquierda,
+                              puntos: widget.nivel.puntos,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: PanelReglas(
+                              reglas: derecha,
+                              puntos: widget.nivel.puntos,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Column(
+                    children: [
+                      pista,
+                      const SizedBox(height: 10),
+                      fichas,
+                      const SizedBox(height: 12),
+                      boton,
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        if (espacio.maxHeight < 500) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 SizedBox(
-                  width: 150,
+                  width: 130,
                   child: PanelReglas(
-                    reglas: reglasDe(widget.nivel).$1,
+                    reglas: izquierda,
                     puntos: widget.nivel.puntos,
                   ),
                 ),
-                Expanded(
-                  child: Center(
-                    child: TableroInterfaz(
-                      tablero: tablero,
-                      anclas: widget.nivel.anclas,
-                      numeros: numeros,
-                      arrastrando: arrastrando,
-                      alSoltar: _soltar,
-                      alQuitar: _quitar,
-                    ),
-                  ),
-                ),
+                Expanded(child: Center(child: interfaz)),
                 SizedBox(
-                  width: 150,
+                  width: 130,
                   child: PanelReglas(
-                    reglas: reglasDe(widget.nivel).$2,
+                    reglas: derecha,
                     puntos: widget.nivel.puntos,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                SizedBox(
+                  width: 216,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          pista,
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              for (var n = 1; n <= 6; n++)
+                                usados.contains(n)
+                                    ? const _Hueco()
+                                    : _Ficha(
+                                        numero: n,
+                                        alEmpezar: () =>
+                                            setState(() => arrastrando = true),
+                                        alTerminar: () =>
+                                            setState(() => arrastrando = false),
+                                      ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _BotonProgreso(
+                            puestos: numeros.length,
+                            total: total,
+                            alTocar: boton.alTocar,
+                            ancho: 216,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              for (var n = 1; n <= 6; n++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: usados.contains(n)
-                      ? const _Hueco()
-                      : _Ficha(
-                          numero: n,
-                          alEmpezar: () => setState(() => arrastrando = true),
-                          alTerminar: () => setState(() => arrastrando = false),
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: PanelReglas(
+                        reglas: izquierda,
+                        puntos: widget.nivel.puntos,
+                      ),
+                    ),
+                    Expanded(child: Center(child: interfaz)),
+                    SizedBox(
+                      width: 150,
+                      child: PanelReglas(
+                        reglas: derecha,
+                        puntos: widget.nivel.puntos,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 16),
+              pista,
+              const SizedBox(height: 12),
+              fichas,
+              const SizedBox(height: 20),
+              boton,
             ],
           ),
-          const SizedBox(height: 20),
-          _BotonProgreso(
-            puestos: numeros.length,
-            total: total,
-            alTocar: completo
-                ? () {
-                    final listo = _tableroConAnclas();
-                    final terminar = widget.alTerminar;
-                    if (terminar != null) {
-                      terminar(listo);
-                    } else {
-                      context
-                          .read<TableroBloc>()
-                          .add(ValoresInicialesProporcionados(listo));
-                    }
-                  }
-                : null,
+        );
+      },
+    );
+  }
+}
+
+class _Pista extends StatelessWidget {
+  final bool completo;
+
+  const _Pista({required this.completo});
+
+  @override
+  Widget build(BuildContext context) {
+    const estilo = TextStyle(
+      fontSize: 15,
+      height: 1.3,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF111827),
+    );
+    return Row(
+      key: const Key('pista_anclas'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          completo ? Icons.check_circle_outline : Icons.swipe_up_outlined,
+          size: 20,
+          color: const Color(0xFF374151),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text.rich(
+            completo
+                ? const TextSpan(
+                    text: 'Listo. Toca un número puesto para quitarlo.',
+                  )
+                : const TextSpan(
+                    text: 'Arrastra cada número a una casilla con ',
+                    children: [
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Icon(
+                          Icons.star,
+                          size: 18,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                    ],
+                  ),
+            textAlign: TextAlign.center,
+            style: estilo,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -149,11 +328,13 @@ class _BotonProgreso extends StatelessWidget {
   final int puestos;
   final int total;
   final VoidCallback? alTocar;
+  final double ancho;
 
   const _BotonProgreso({
     required this.puestos,
     required this.total,
     required this.alTocar,
+    this.ancho = 300,
   });
 
   @override
@@ -161,7 +342,7 @@ class _BotonProgreso extends StatelessWidget {
     final completo = puestos == total;
 
     return Container(
-      width: 300,
+      width: ancho,
       height: 56,
       decoration: BoxDecoration(
         border: Border.all(color: Colors.black, width: 2),

@@ -12,7 +12,6 @@ class Regla {
   const Regla(this.tipo, this.simbolo, this.descripcion);
 }
 
-/// La tarjeta que le toca a cada tipo de zona.
 const Map<Tipo, Regla> reglaPorTipo = {
   Tipo.rojo: Regla(Tipo.rojo, '≠', 'Todos distintos'),
   Tipo.amarillo: Regla(Tipo.amarillo, '≠', 'Todos distintos'),
@@ -35,7 +34,6 @@ const List<Regla> reglasDerecha = [
   Regla(Tipo.verde, '?', 'Cualquier número'),
 ];
 
-/// Las reglas que aplican en un nivel, repartidas entre los dos paneles.
 (List<Regla>, List<Regla>) reglasDe(Nivel nivel) {
   final reglas = [for (final tipo in nivel.tiposUsados) reglaPorTipo[tipo]!];
   final corte = (reglas.length / 2).ceil();
@@ -45,19 +43,12 @@ const List<Regla> reglasDerecha = [
 class PanelReglas extends StatelessWidget {
   final List<Regla> reglas;
 
-  /// Los puntajes del nivel. Si no vienen se usan los de `puntosPorTipo`.
   final Map<Tipo, List<int>> puntos;
 
-  const PanelReglas({
-    super.key,
-    required this.reglas,
-    this.puntos = const {},
-  });
+  const PanelReglas({super.key, required this.reglas, this.puntos = const {}});
 
   @override
   Widget build(BuildContext context) {
-    // El nivel 4 usa siete tipos de zona y no caben cuatro tarjetas grandes
-    // en la altura del tablero.
     final compacto = reglas.length >= 4;
 
     return SingleChildScrollView(

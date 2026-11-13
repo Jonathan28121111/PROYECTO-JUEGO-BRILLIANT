@@ -18,18 +18,19 @@ class Tablero {
   });
 
   static const List<(int, int)> anclasNivel1 = [
-    (0, 2), (1, 5), (3, 1), (3, 4), (5, 2), (6, 4),
+    (0, 2),
+    (1, 5),
+    (3, 1),
+    (3, 4),
+    (5, 2),
+    (6, 4),
   ];
 
   factory Tablero.deNivel(Nivel nivel) {
-    return Tablero(
-      nivel.zonasPorCelda,
-      nivel.coloresPorZona,
-      <List<int?>>[
-        for (final fila in nivel.zonasPorCelda) <int?>[for (final _ in fila) null],
-      ],
-      puntosPorZona: nivel.puntos,
-    );
+    return Tablero(nivel.zonasPorCelda, nivel.coloresPorZona, <List<int?>>[
+      for (final fila in nivel.zonasPorCelda)
+        <int?>[for (final _ in fila) null],
+    ], puntosPorZona: nivel.puntos);
   }
 
   bool esHueco(int fila, int columna) => zonasPorCelda[fila][columna] == hueco;
@@ -38,20 +39,15 @@ class Tablero {
       coloresPorZona[zonasPorCelda[fila][columna]]!;
 
   factory Tablero.nivel1() {
-    return Tablero(
-      nivel1.zonasPorCelda,
-      nivel1.coloresPorZona,
-      [
-        [1, 5, 2, 6, 3, 6, 5],
-        [2, 5, 2, 2, 3, 6, 2],
-        [3, 2, 3, 2, 3, 2, 4],
-        [6, 1, 4, 3, 3, 3, 6],
-        [1, 4, 1, 4, 1, 2, 4],
-        [5, 6, 4, 3, 4, 4, 4],
-        [2, 1, 1, 6, 5, 4, 6],
-      ],
-      puntosPorZona: nivel1.puntos,
-    );
+    return Tablero(nivel1.zonasPorCelda, nivel1.coloresPorZona, [
+      [1, 5, 2, 6, 3, 6, 5],
+      [2, 5, 2, 2, 3, 6, 2],
+      [3, 2, 3, 2, 3, 2, 4],
+      [6, 1, 4, 3, 3, 3, 6],
+      [1, 4, 1, 4, 1, 2, 4],
+      [5, 6, 4, 3, 4, 4, 4],
+      [2, 1, 1, 6, 5, 4, 6],
+    ], puntosPorZona: nivel1.puntos);
   }
 
   factory Tablero.nivel1Inicial() => Tablero.deNivel(nivel1);

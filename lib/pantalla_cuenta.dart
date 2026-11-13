@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'avatar_usuario.dart';
 import 'estilo_acceso.dart';
 import 'pantalla_registro.dart';
+import 'servidor.dart';
+import 'sonidos.dart';
 import 'sesion_bloc.dart';
 
 class PantallaCuenta extends StatefulWidget {
@@ -17,8 +19,6 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
   final _usuario = TextEditingController();
   final _contrasena = TextEditingController();
 
-  /// El error del bloc es compartido con el registro: solo se muestra aquí
-  /// si lo provocó un intento de inicio de sesión desde esta pantalla.
   bool _intento = false;
 
   @override
@@ -37,9 +37,9 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
 
   void _abrirRegistro() {
     setState(() => _intento = false);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const PantallaRegistro()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const PantallaRegistro()));
   }
 
   @override
@@ -85,10 +85,7 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
             ],
           ),
         ),
-        if (error != null) ...[
-          const SizedBox(height: 16),
-          MensajeError(error),
-        ],
+        if (error != null) ...[const SizedBox(height: 16), MensajeError(error)],
         const SizedBox(height: 24),
         if (cargando)
           const SizedBox(
@@ -117,6 +114,155 @@ class _PantallaCuentaState extends State<PantallaCuenta> {
           pregunta: '¿No tienes cuenta?',
           accion: 'Crear cuenta',
           alTocar: cargando ? null : _abrirRegistro,
+        ),
+        const SizedBox(height: 8),
+        const EnlaceServidor(),
+      ],
+    );
+  }
+}
+
+class EnlaceServidor extends StatelessWidget {
+  const EnlaceServidor({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: servidorActual,
+      builder: (context, direccion, _) => Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'Servidor: ${mostrarServidor(direccion)}',
+            key: const Key('texto_servidor'),
+            style: const TextStyle(fontSize: 13, color: Gris.secundario),
+          ),
+          TextButton(
+            key: const Key('cambiar_servidor'),
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => const DialogoServidor(),
+            ),
+            child: const Text('Cambiar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DialogoServidor extends StatefulWidget {
+  final Future<bool> Function(String direccion) probar;
+
+  const DialogoServidor({super.key, this.probar = servidorResponde});
+
+  @override
+  State<DialogoServidor> createState() => _DialogoServidorState();
+}
+
+class _DialogoServidorState extends State<DialogoServidor> {
+  late final _campo = TextEditingController(
+    text: Uri.tryParse(servidorActual.value)?.host ?? '',
+  );
+  bool _probando = false;
+  String? _error;
+  String? _sinRespuesta;
+
+  @override
+  void dispose() {
+    _campo.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar({bool aunSinRespuesta = false}) async {
+    final direccion = normalizarServidor(_campo.text);
+    if (direccion == null) {
+      setState(() => _error = 'Escribe una dirección como 192.168.0.170.');
+      return;
+    }
+    if (!aunSinRespuesta) {
+      setState(() {
+        _probando = true;
+        _error = null;
+      });
+      final responde = await widget.probar(direccion);
+      if (!mounted) return;
+      if (!responde) {
+        setState(() {
+          _probando = false;
+          _sinRespuesta = direccion;
+          _error =
+              'No encontré el servidor en ${mostrarServidor(direccion)}. '
+              'Revisa que la Mac esté prendida, con el servidor corriendo y '
+              'en la misma red.';
+        });
+        return;
+      }
+    }
+    await guardarServidor(direccion);
+    if (!mounted) return;
+    final mensajero = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    mensajero.showSnackBar(
+      SnackBar(content: Text('Servidor: ${mostrarServidor(direccion)}')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mismo = _sinRespuesta == normalizarServidor(_campo.text);
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text('Dirección del servidor'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Es la IP de la Mac donde corre el servidor. jugar.sh la muestra '
+            'al arrancar.',
+            style: TextStyle(fontSize: 14, color: Gris.secundario),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            key: const Key('campo_servidor'),
+            controller: _campo,
+            enabled: !_probando,
+            autofocus: true,
+            autocorrect: false,
+            keyboardType: TextInputType.url,
+            onChanged: (_) => setState(() => _error = null),
+            onSubmitted: (_) => _guardar(),
+            decoration: const InputDecoration(
+              labelText: 'Dirección',
+              hintText: '192.168.0.170',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          if (_error case final error?) ...[
+            const SizedBox(height: 12),
+            MensajeError(error),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _probando ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        if (_error != null && mismo)
+          TextButton(
+            key: const Key('guardar_igual'),
+            onPressed: () => _guardar(aunSinRespuesta: true),
+            child: const Text('Guardar igual'),
+          ),
+        FilledButton(
+          key: const Key('guardar_servidor'),
+          onPressed: _probando ? null : _guardar,
+          child: Text(_probando ? 'Probando…' : 'Probar y guardar'),
         ),
       ],
     );
@@ -147,8 +293,6 @@ class _Separador extends StatelessWidget {
 class MenuCuenta extends StatelessWidget {
   const MenuCuenta({super.key});
 
-  static const Color _rojo = Color(0xFFB91C1C);
-
   @override
   Widget build(BuildContext context) {
     final estado = context.watch<SesionBloc>().state;
@@ -174,16 +318,11 @@ class MenuCuenta extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
-        onSelected: (opcion) async {
-          final bloc = context.read<SesionBloc>();
-          switch (opcion) {
-            case 'salir':
-              bloc.add(CerrarSesion());
-            case 'borrar':
-              final contrasena = await pedirContrasena(context);
-              if (contrasena != null) {
-                bloc.add(BorrarCuenta(contrasena));
-              }
+        onSelected: (opcion) {
+          if (opcion == 'salir') {
+            context.read<SesionBloc>().add(CerrarSesion());
+          } else if (opcion == 'sonido') {
+            Sonidos.cambiar(!Sonidos.activos.value);
           }
         },
         itemBuilder: (_) => [
@@ -226,17 +365,19 @@ class MenuCuenta extends StatelessWidget {
           ),
           const PopupMenuDivider(height: 1),
           _opcion(
+            valor: 'sonido',
+            icono: Sonidos.activos.value
+                ? Icons.volume_up_outlined
+                : Icons.volume_off_outlined,
+            texto: Sonidos.activos.value
+                ? 'Silenciar sonidos'
+                : 'Activar sonidos',
+          ),
+          _opcion(
             valor: 'salir',
             icono: conCuenta ? Icons.logout_rounded : Icons.login_rounded,
             texto: conCuenta ? 'Cerrar sesión' : 'Iniciar sesión',
           ),
-          if (conCuenta)
-            _opcion(
-              valor: 'borrar',
-              icono: Icons.delete_outline_rounded,
-              texto: 'Borrar cuenta',
-              color: _rojo,
-            ),
         ],
         child: const Padding(
           padding: EdgeInsets.all(4),
@@ -269,69 +410,6 @@ class MenuCuenta extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-Future<String?> pedirContrasena(BuildContext context) => showDialog<String>(
-  context: context,
-  builder: (_) => const DialogoContrasena(),
-);
-
-class DialogoContrasena extends StatefulWidget {
-  const DialogoContrasena({super.key});
-
-  @override
-  State<DialogoContrasena> createState() => _DialogoContrasenaState();
-}
-
-class _DialogoContrasenaState extends State<DialogoContrasena> {
-  final _campo = TextEditingController();
-
-  @override
-  void dispose() {
-    _campo.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      icon: const Icon(
-        Icons.warning_amber_rounded,
-        color: MenuCuenta._rojo,
-        size: 32,
-      ),
-      title: const Text('Borrar cuenta'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Esto no se puede deshacer. Escribe tu contraseña:'),
-          const SizedBox(height: 12),
-          TextField(
-            key: const Key('campo_confirmar'),
-            controller: _campo,
-            obscureText: true,
-            autofocus: true,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: MenuCuenta._rojo),
-          onPressed: () => Navigator.pop(context, _campo.text),
-          child: const Text('Borrar'),
-        ),
-      ],
     );
   }
 }

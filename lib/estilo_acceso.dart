@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Grises de las pantallas de inicio de sesión y registro.
 abstract final class Gris {
   static const Color tinta = Color(0xFF111827);
   static const Color boton = Color(0xFF1F2937);
@@ -14,7 +13,6 @@ abstract final class Gris {
   static const Color bordeError = Color(0xFFFECACA);
 }
 
-/// Aplica el estilo gris solo a lo que envuelve, sin tocar el resto de la app.
 class TemaAcceso extends StatelessWidget {
   final Widget child;
 
@@ -108,14 +106,12 @@ class TemaAcceso extends StatelessWidget {
   }
 }
 
-/// El marco común: fondo blanco y una tarjeta centrada con la marca arriba.
 class MarcoAcceso extends StatelessWidget {
   final String titulo;
   final String subtitulo;
   final List<Widget> children;
   final Widget? encabezado;
 
-  /// Imagen centrada sobre el título; con ella el título también se centra.
   final Widget? icono;
 
   const MarcoAcceso({
@@ -241,7 +237,6 @@ class _Marca extends StatelessWidget {
   }
 }
 
-/// Aviso de error dentro del formulario.
 class MensajeError extends StatelessWidget {
   final String texto;
 
@@ -273,7 +268,6 @@ class MensajeError extends StatelessWidget {
   }
 }
 
-/// Fila "texto + enlace" al pie del formulario.
 class EnlacePie extends StatelessWidget {
   final String pregunta;
   final String accion;

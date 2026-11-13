@@ -10,13 +10,9 @@ const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
 const Color _borde = Color(0xFFE5E7EB);
 
-/// La portada. Con [tarjetaEnLinea] tiene dos pasos: primero se elige el
-/// modo (solo o en línea) y, para jugar solo, después el tablero.
 class PantallaNiveles extends StatelessWidget {
-  /// La tarjeta del modo en línea. Sin ella se va directo a los tableros.
   final Widget? tarjetaEnLinea;
 
-  /// Si ya se eligió jugar solo y toca mostrar los tableros.
   final bool viendoTableros;
   final VoidCallback? alElegirSolo;
 
@@ -61,7 +57,8 @@ class _SelectorModo extends StatelessWidget {
         child: MiniaturaNivel(nivel: nivel1),
       ),
       titulo: 'Jugar solo',
-      descripcion: 'Elige uno de los cuatro tableros oficiales y juega a tu '
+      descripcion:
+          'Elige uno de los cuatro tableros oficiales y juega a tu '
           'ritmo.',
       accion: 'Elegir tablero',
       alTocar: alElegirSolo,
@@ -110,8 +107,6 @@ class _SelectorModo extends StatelessWidget {
   }
 }
 
-/// Avisa a las tarjetas de modo que van lado a lado con la misma altura, para
-/// que bajen el botón al fondo y queden alineados.
 class _Estirar extends InheritedWidget {
   const _Estirar({required super.child});
 
@@ -119,8 +114,6 @@ class _Estirar extends InheritedWidget {
   bool updateShouldNotify(_Estirar viejo) => false;
 }
 
-/// Una tarjeta grande de modo de juego: ilustración arriba, título, una
-/// frase y el botón. Toda la tarjeta se puede tocar.
 class TarjetaModo extends StatelessWidget {
   final Widget ilustracion;
   final String titulo;
@@ -129,7 +122,6 @@ class TarjetaModo extends StatelessWidget {
   final IconData iconoAccion;
   final VoidCallback? alTocar;
 
-  /// La destacada lleva el botón relleno; la otra, el tono suave.
   final bool destacada;
   final Key? claveBoton;
 
@@ -148,7 +140,8 @@ class TarjetaModo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colores = Theme.of(context).colorScheme;
-    final estirar = context.dependOnInheritedWidgetOfExactType<_Estirar>() != null;
+    final estirar =
+        context.dependOnInheritedWidgetOfExactType<_Estirar>() != null;
     final forma = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
       side: const BorderSide(color: _borde),
@@ -190,34 +183,34 @@ class TarjetaModo extends StatelessWidget {
             Expanded(
               flex: estirar ? 1 : 0,
               child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    titulo,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
-                      color: _texto,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                        color: _texto,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    descripcion,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: _secundario,
+                    const SizedBox(height: 8),
+                    Text(
+                      descripcion,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: _secundario,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (estirar) const Spacer(),
-                  boton,
-                ],
+                    const SizedBox(height: 24),
+                    if (estirar) const Spacer(),
+                    boton,
+                  ],
+                ),
               ),
-            ),
             ),
           ],
         ),
@@ -249,18 +242,28 @@ class _SelectorTablero extends StatelessWidget {
           style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
         ),
         const SizedBox(height: 32),
-        Wrap(
-          spacing: 24,
-          runSpacing: 24,
-          children: [
-            for (final nivel in nivelesOficiales)
-              TarjetaNivel(
-                nivel: nivel,
-                alTocar: nivel.disponible
-                    ? () => context.read<TableroBloc>().add(NivelElegido(nivel))
-                    : null,
-              ),
-          ],
+        LayoutBuilder(
+          builder: (context, espacio) {
+            final angosto = espacio.maxWidth < 520;
+            final separacion = angosto ? 12.0 : 24.0;
+            final ancho = angosto ? (espacio.maxWidth - separacion) / 2 : 232.0;
+            return Wrap(
+              spacing: separacion,
+              runSpacing: separacion,
+              children: [
+                for (final nivel in nivelesOficiales)
+                  TarjetaNivel(
+                    nivel: nivel,
+                    ancho: ancho,
+                    alTocar: nivel.disponible
+                        ? () => context.read<TableroBloc>().add(
+                            NivelElegido(nivel),
+                          )
+                        : null,
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -270,8 +273,14 @@ class _SelectorTablero extends StatelessWidget {
 class TarjetaNivel extends StatelessWidget {
   final Nivel nivel;
   final VoidCallback? alTocar;
+  final double ancho;
 
-  const TarjetaNivel({super.key, required this.nivel, this.alTocar});
+  const TarjetaNivel({
+    super.key,
+    required this.nivel,
+    this.alTocar,
+    this.ancho = 232,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +294,7 @@ class TarjetaNivel extends StatelessWidget {
     return Opacity(
       opacity: habilitado ? 1 : 0.5,
       child: SizedBox(
-        width: 232,
+        width: ancho,
         child: Material(
           color: Colors.white,
           shape: forma,
@@ -299,7 +308,7 @@ class TarjetaNivel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: 200,
+                    height: ancho - 32,
                     child: Center(
                       child: nivel.disponible
                           ? MiniaturaNivel(nivel: nivel)
@@ -329,9 +338,7 @@ class TarjetaNivel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          nivel.disponible
-                              ? '${nivel.coloresPorZona.length} zonas'
-                              : 'No disponible',
+                          nivel.disponible ? '' : 'No disponible',
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
@@ -374,8 +381,6 @@ class MiniaturaNivel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Se pinta todo de una vez: con 49 casillas como widgets separados cada
-    // miniatura costaba unos 200 elementos.
     return AspectRatio(
       aspectRatio: 1,
       child: RepaintBoundary(

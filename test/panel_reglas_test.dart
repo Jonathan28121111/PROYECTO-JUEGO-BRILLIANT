@@ -10,9 +10,17 @@ import 'ayudas_interfaz.dart';
 void main() {
   Future<void> montarPanel(WidgetTester tester, List<Regla> reglas) async {
     pantallaGrande(tester);
-    await tester.pumpWidget(montar(
-      Center(child: SizedBox(width: 150, height: 900, child: PanelReglas(reglas: reglas))),
-    ));
+    await tester.pumpWidget(
+      montar(
+        Center(
+          child: SizedBox(
+            width: 150,
+            height: 900,
+            child: PanelReglas(reglas: reglas),
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -45,8 +53,9 @@ void main() {
   });
 
   group('los puntajes', () {
-    testWidgets('una tarjeta muestra los tres puntos de su color',
-        (tester) async {
+    testWidgets('una tarjeta muestra los tres puntos de su color', (
+      tester,
+    ) async {
       await montarPanel(tester, const [Regla(Tipo.azul, '=', 'Todos iguales')]);
 
       expect(puntosPorTipo[Tipo.azul], [7, 5, 3]);
@@ -55,8 +64,9 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     });
 
-    testWidgets('los puntos salen del modelo, no estan escritos a mano',
-        (tester) async {
+    testWidgets('los puntos salen del modelo, no estan escritos a mano', (
+      tester,
+    ) async {
       for (final tipo in Tipo.values) {
         await montarPanel(tester, [Regla(tipo, 'x', 'prueba')]);
 
@@ -72,12 +82,15 @@ void main() {
     test('todos los colores tienen sus tres puntajes declarados', () {
       for (final tipo in Tipo.values) {
         expect(puntosPorTipo[tipo], isNotNull, reason: 'falta $tipo');
-        expect(puntosPorTipo[tipo], hasLength(3), reason: '$tipo mal declarado');
+        expect(
+          puntosPorTipo[tipo],
+          hasLength(3),
+          reason: '$tipo mal declarado',
+        );
       }
     });
 
     test('los puntajes van de mayor a menor', () {
-      // Primero, segundo y tercer jugador que completa la zona.
       for (final tipo in Tipo.values) {
         final puntos = puntosPorTipo[tipo]!;
         expect(puntos[0], greaterThan(puntos[1]), reason: '$tipo');
@@ -110,20 +123,23 @@ void main() {
   });
 
   group('no desborda', () {
-    testWidgets('las cinco reglas juntas caben en una columna angosta',
-        (tester) async {
+    testWidgets('las cinco reglas juntas caben en una columna angosta', (
+      tester,
+    ) async {
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Center(
-          child: SizedBox(
-            width: 150,
-            height: 300, 
-            child: PanelReglas(
-              reglas: const [...reglasIzquierda, ...reglasDerecha],
+      await tester.pumpWidget(
+        montar(
+          Center(
+            child: SizedBox(
+              width: 150,
+              height: 300,
+              child: PanelReglas(
+                reglas: const [...reglasIzquierda, ...reglasDerecha],
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(SingleChildScrollView), findsOneWidget);
@@ -151,10 +167,16 @@ void main() {
         final (izquierda, derecha) = reglasDe(nivel);
         final tipos = [...izquierda, ...derecha].map((r) => r.tipo).toList();
 
-        expect(tipos.toSet(), nivel.tiposUsados.toSet(),
-            reason: 'nivel ${nivel.numero}');
-        expect(tipos.toSet(), hasLength(tipos.length),
-            reason: 'nivel ${nivel.numero}: un tipo repetido');
+        expect(
+          tipos.toSet(),
+          nivel.tiposUsados.toSet(),
+          reason: 'nivel ${nivel.numero}',
+        );
+        expect(
+          tipos.toSet(),
+          hasLength(tipos.length),
+          reason: 'nivel ${nivel.numero}: un tipo repetido',
+        );
       }
     });
 
@@ -177,21 +199,24 @@ void main() {
   });
 
   group('los puntos salen del nivel', () {
-    testWidgets('el verde vale distinto en el nivel 3 que en el 1',
-        (tester) async {
+    testWidgets('el verde vale distinto en el nivel 3 que en el 1', (
+      tester,
+    ) async {
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Center(
-          child: SizedBox(
-            width: 150,
-            height: 900,
-            child: PanelReglas(
-              reglas: const [Regla(Tipo.verde, '?', 'Cualquier numero')],
-              puntos: nivel3.puntos,
+      await tester.pumpWidget(
+        montar(
+          Center(
+            child: SizedBox(
+              width: 150,
+              height: 900,
+              child: PanelReglas(
+                reglas: const [Regla(Tipo.verde, '?', 'Cualquier numero')],
+                puntos: nivel3.puntos,
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(nivel3.puntosDe(Tipo.verde), [8, 6, 4]);
@@ -202,17 +227,19 @@ void main() {
 
     testWidgets('sin puntos del nivel usa los de omision', (tester) async {
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Center(
-          child: SizedBox(
-            width: 150,
-            height: 900,
-            child: PanelReglas(
-              reglas: const [Regla(Tipo.azul, '=', 'Todos iguales')],
+      await tester.pumpWidget(
+        montar(
+          Center(
+            child: SizedBox(
+              width: 150,
+              height: 900,
+              child: PanelReglas(
+                reglas: const [Regla(Tipo.azul, '=', 'Todos iguales')],
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('7'), findsOneWidget);
@@ -228,64 +255,62 @@ void main() {
       String simbolo,
     ) async {
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Center(
-          child: SizedBox(
-            width: 150,
-            height: 900,
-            child: PanelReglas(reglas: reglas),
+      await tester.pumpWidget(
+        montar(
+          Center(
+            child: SizedBox(
+              width: 150,
+              height: 900,
+              child: PanelReglas(reglas: reglas),
+            ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
       return tester.widget<Text>(find.text(simbolo)).style?.fontSize;
     }
 
-    testWidgets('con tres reglas o menos las tarjetas van normales',
-        (tester) async {
-      final tamano = await tamanoDelSimbolo(
-        tester,
-        const [
-          Regla(Tipo.azul, '=', 'a'),
-          Regla(Tipo.verde, '?', 'b'),
-          Regla(Tipo.rojo, 'x', 'c'),
-        ],
-        '=',
-      );
+    testWidgets('con tres reglas o menos las tarjetas van normales', (
+      tester,
+    ) async {
+      final tamano = await tamanoDelSimbolo(tester, const [
+        Regla(Tipo.azul, '=', 'a'),
+        Regla(Tipo.verde, '?', 'b'),
+        Regla(Tipo.rojo, 'x', 'c'),
+      ], '=');
 
       expect(tamano, 24);
     });
 
     testWidgets('con cuatro o mas se encogen', (tester) async {
-      final tamano = await tamanoDelSimbolo(
-        tester,
-        const [
-          Regla(Tipo.azul, '=', 'a'),
-          Regla(Tipo.verde, '?', 'b'),
-          Regla(Tipo.rojo, 'x', 'c'),
-          Regla(Tipo.morado, 'y', 'd'),
-        ],
-        '=',
-      );
+      final tamano = await tamanoDelSimbolo(tester, const [
+        Regla(Tipo.azul, '=', 'a'),
+        Regla(Tipo.verde, '?', 'b'),
+        Regla(Tipo.rojo, 'x', 'c'),
+        Regla(Tipo.morado, 'y', 'd'),
+      ], '=');
 
       expect(tamano, 19);
     });
 
-    testWidgets('las cuatro reglas del nivel 4 caben sin desbordar',
-        (tester) async {
+    testWidgets('las cuatro reglas del nivel 4 caben sin desbordar', (
+      tester,
+    ) async {
       pantallaGrande(tester);
-      await tester.pumpWidget(montar(
-        Center(
-          child: SizedBox(
-            width: 150,
-            height: 420,
-            child: PanelReglas(
-              reglas: reglasDe(nivel4).$1,
-              puntos: nivel4.puntos,
+      await tester.pumpWidget(
+        montar(
+          Center(
+            child: SizedBox(
+              width: 150,
+              height: 420,
+              child: PanelReglas(
+                reglas: reglasDe(nivel4).$1,
+                puntos: nivel4.puntos,
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
