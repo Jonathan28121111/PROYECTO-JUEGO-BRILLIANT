@@ -74,10 +74,7 @@ class VistaJuego extends StatelessWidget {
     final colocarSinSonido =
         alColocar ??
         (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
-    void elegir(int n) {
-      Sonidos.tocar(Sonido.elegirDado);
-      elegirSinSonido(n);
-    }
+    void elegir(int n) => elegirSinSonido(n);
 
     void colocar(int f, int c) {
       Sonidos.tocar(Sonido.colocar);
