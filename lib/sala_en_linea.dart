@@ -16,6 +16,7 @@ class JugadorEnLinea {
   final bool terminado;
   final bool fuera;
   final Map<int, int> zonas;
+  final Map<(int, int), int> casillas;
 
   final int? segundosGracia;
 
@@ -29,6 +30,7 @@ class JugadorEnLinea {
     this.terminado = false,
     this.fuera = false,
     this.zonas = const {},
+    this.casillas = const {},
     this.segundosGracia,
   });
 
@@ -43,6 +45,10 @@ class JugadorEnLinea {
     jugoRonda: json['jugoRonda'] as bool? ?? false,
     terminado: json['terminado'] as bool? ?? false,
     fuera: json['fuera'] as bool? ?? false,
+    casillas: {
+      for (final c in (json['casillas'] as List? ?? const []))
+        if (c case [final int f, final int co, final int n]) (f, co): n,
+    },
     zonas: {
       for (final MapEntry(:key, :value)
           in (json['zonas'] as Map? ?? const {}).entries)
