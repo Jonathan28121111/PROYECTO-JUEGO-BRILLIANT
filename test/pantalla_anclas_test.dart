@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/pantalla_anclas.dart';
 import 'package:pruebas_numeros/tablero_bloc.dart';
+import 'package:pruebas_numeros/tablero_interfaz.dart';
 
 import 'ayudas_interfaz.dart';
 
@@ -26,7 +27,39 @@ void main() {
     testWidgets('hay una estrella por cada ancla', (tester) async {
       await abrir(tester);
 
-      expect(find.byIcon(Icons.star), findsNWidgets(6));
+      expect(
+        find.descendant(
+          of: find.byType(TableroInterfaz),
+          matching: find.byIcon(Icons.star),
+        ),
+        findsNWidgets(6),
+      );
+    });
+
+    testWidgets('explica que hay que arrastrar los numeros', (tester) async {
+      await abrir(tester);
+
+      expect(
+        find.textContaining('Arrastra cada número a una casilla con'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('con todo puesto la pista cambia', (tester) async {
+      await abrir(tester);
+      for (var n = 1; n <= 6; n++) {
+        final ancla = nivel1.anclas[n - 1];
+        await arrastrarFicha(tester, n, ancla.$1, ancla.$2);
+      }
+
+      expect(
+        find.text('Arrastra cada número a una casilla con ★'),
+        findsNothing,
+      );
+      expect(
+        find.text('Listo. Toca un número puesto para quitarlo.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('la bandeja arranca con las seis fichas', (tester) async {
@@ -284,7 +317,10 @@ void main() {
         await abrir(tester, nivel: nivel);
 
         expect(
-          find.byIcon(Icons.star),
+          find.descendant(
+            of: find.byType(TableroInterfaz),
+            matching: find.byIcon(Icons.star),
+          ),
           findsNWidgets(6),
           reason: 'nivel ${nivel.numero}',
         );

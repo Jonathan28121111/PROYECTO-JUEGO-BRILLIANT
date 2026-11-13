@@ -846,7 +846,7 @@ void main() {
       await llega(tester, enJuego(jugadores: dos(deBeto: {'7': 3})));
       await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.text('beto completó una zona roja (+6)'), findsOneWidget);
+      expect(find.text('beto completó una zona roja · +6'), findsOneWidget);
       await cerrar(tester);
     });
 
@@ -868,6 +868,7 @@ void main() {
       await abrir(tester);
       await llega(tester, enJuego(jugadores: dos(deBeto: {'7': 3})));
 
+      expect(find.byKey(const Key('celda_apagada')), findsNWidgets(6));
       final marcas = find.byKey(const Key('marcas_zona'));
       expect(marcas, findsOneWidget);
       expect(
@@ -902,10 +903,156 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
 
-      expect(find.text('Completaste una zona roja (+4)'), findsOneWidget);
+      expect(find.text('Completaste una zona roja · +4'), findsOneWidget);
       final marcas = find.byKey(const Key('marcas_zona'));
       expect(find.descendant(of: marcas, matching: find.text('B')), findsOne);
       expect(find.descendant(of: marcas, matching: find.text('A')), findsOne);
+      await cerrar(tester);
+    });
+  });
+
+  group('listos y reloj', () {
+    testWidgets('el anfitrion no empieza si falta un Listo', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          jugadores: [jugador('ana'), jugador('beto', preparado: false)],
+        ),
+      );
+
+      expect(find.text('Esperando'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('boton_empezar')));
+      await tester.pump();
+
+      expect(
+        find.text('Falta que todos den Listo para empezar.'),
+        findsOneWidget,
+      );
+      expect(servidor.tipos, isNot(contains('empezar')));
+      await cerrar(tester);
+    });
+
+    testWidgets('el invitado da Listo', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          anfitrion: 'beto',
+          jugadores: [jugador('beto'), jugador('ana', preparado: false)],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('boton_listo')));
+      await tester.pump();
+
+      expect(servidor.recibidos.last, {'tipo': 'preparado', 'valor': true});
+      await cerrar(tester);
+    });
+
+    testWidgets('el anfitrion apaga el reloj', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(jugadores: [jugador('ana'), jugador('beto')]),
+      );
+
+      await tester.tap(find.byKey(const Key('switch_reloj')));
+      await tester.pump();
+
+      expect(servidor.recibidos.last, {'tipo': 'ajustes', 'conReloj': false});
+      await cerrar(tester);
+    });
+
+    testWidgets('el invitado ve el reloj pero no lo cambia', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          anfitrion: 'beto',
+          jugadores: [jugador('beto'), jugador('ana')],
+        ),
+      );
+
+      final interruptor = tester.widget<Switch>(
+        find.byKey(const Key('switch_reloj')),
+      );
+      expect(interruptor.onChanged, isNull);
+      await cerrar(tester);
+    });
+
+    testWidgets('sin reloj la partida no muestra segundos', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(
+          fase: 'juego',
+          ronda: 1,
+          dados: [3, 5],
+          conReloj: false,
+          jugadores: [
+            jugador('ana', listo: true),
+            jugador('beto', listo: true),
+          ],
+        ),
+      );
+
+      expect(find.byKey(const Key('sin_reloj')), findsOneWidget);
+      expect(find.text('reloj en pausa'), findsNothing);
+      await cerrar(tester);
+    });
+  });
+
+  group('avisos', () {
+    testWidgets('los avisos de zonas se van solos y no se amontonan', (
+      tester,
+    ) async {
+      await abrir(tester);
+      List<Map<String, Object?>> con(Map<String, int> beto) => [
+        jugador('ana', listo: true),
+        jugador('beto', listo: true, zonas: beto),
+      ];
+      await llega(tester, enJuego(jugadores: con({})));
+      await llega(tester, enJuego(jugadores: con({'7': 3})));
+      await llega(tester, enJuego(jugadores: con({'7': 3, '10': 3})));
+      await llega(tester, enJuego(jugadores: con({'7': 3, '10': 3, '4': 3})));
+      await llega(
+        tester,
+        enJuego(jugadores: con({'7': 3, '10': 3, '4': 3, '8': 4})),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final avisos = find.descendant(
+        of: find.byKey(const Key('avisos_zonas')),
+        matching: find.textContaining('completó'),
+      );
+      expect(avisos, findsNWidgets(3));
+
+      await tester.pump(const Duration(seconds: 4));
+      expect(avisos, findsNothing);
+      await cerrar(tester);
+    });
+
+    testWidgets('un aviso nuevo reemplaza al anterior sin esperar', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(tester, enJuego());
+      await llega(tester, {
+        'tipo': 'error',
+        'error': 'x',
+        'mensaje': 'Primer aviso',
+      });
+      await tester.pump(const Duration(milliseconds: 100));
+      await llega(tester, {
+        'tipo': 'error',
+        'error': 'x',
+        'mensaje': 'Segundo aviso',
+      });
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Primer aviso'), findsNothing);
+      expect(find.text('Segundo aviso'), findsOneWidget);
       await cerrar(tester);
     });
   });

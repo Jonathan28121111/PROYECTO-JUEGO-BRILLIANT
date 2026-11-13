@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pruebas_numeros/dado_animado.dart';
 import 'package:pruebas_numeros/main.dart';
 import 'package:pruebas_numeros/nivel.dart';
 import 'package:pruebas_numeros/pantalla_anclas.dart';
@@ -115,7 +116,15 @@ void main() {
 
       expect(find.byType(VistaJuego), findsOneWidget);
       expect(find.byType(PantallaAnclas), findsNothing);
-      expect(find.text('Tira los dados para jugar'), findsOneWidget);
+      expect(find.text('Tirando los dados…'), findsOneWidget);
+      expect(find.text('Tirar los dados'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tirando los dados…'), findsNothing);
+      final dado = tester.widget<DadoAnimado>(find.byKey(const Key('dado_1')));
+      expect(dado.valor, isNotNull);
     });
 
     testWidgets('el boton no hace nada mientras falten fichas', (tester) async {

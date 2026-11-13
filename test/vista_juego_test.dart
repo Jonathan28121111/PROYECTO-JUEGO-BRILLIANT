@@ -50,14 +50,14 @@ void main() {
     testWidgets('sin tirada pide tirar', (tester) async {
       await montarVista(tester);
 
-      expect(find.text('Tira los dados para jugar'), findsOneWidget);
+      expect(find.text('Tirando los dados…'), findsOneWidget);
     });
 
     testWidgets('si se puede volver a tirar lo dice', (tester) async {
       await montarVista(tester, dados: const Dados(5, 6), puedeTirar: true);
 
       expect(
-        find.text('No hay ninguna jugada: vuelve a tirar'),
+        find.text('Con estos dados no hay jugada: se tiran de nuevo…'),
         findsOneWidget,
       );
     });
