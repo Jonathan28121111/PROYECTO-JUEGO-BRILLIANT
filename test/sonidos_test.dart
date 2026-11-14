@@ -42,7 +42,7 @@ void main() {
     expect(sonidosTocados, ['sonidos/zona_completada.m4a']);
   });
 
-  testWidgets('elegir un dado suena', (tester) async {
+  testWidgets('elegir un dado no suena', (tester) async {
     pantallaGrande(tester);
     final tablero = Tablero.deNivel(nivel1);
     await tester.pumpWidget(
@@ -59,7 +59,7 @@ void main() {
     await tester.tap(find.byKey(const Key('dado_1')));
     await tester.pump();
 
-    expect(sonidosTocados, ['sonidos/elegir_dado.m4a']);
+    expect(sonidosTocados, isEmpty);
   });
 
   testWidgets('al salir una tirada nueva suenan los dados una vez', (

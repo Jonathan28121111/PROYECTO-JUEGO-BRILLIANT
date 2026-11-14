@@ -66,7 +66,9 @@ void main() {
       await montarVista(tester, dados: const Dados(3, 2), puedeTirar: false);
 
       expect(
-        find.text('Elige cuál de los dos números vas a escribir'),
+        find.text(
+          'Toca uno de los dos dados: ese es el número que vas a escribir.',
+        ),
         findsOneWidget,
       );
     });
@@ -83,7 +85,7 @@ void main() {
       );
 
       expect(
-        find.text('Con ese número no hay jugada: prueba con el otro'),
+        find.textContaining('no cabe en ningún lado. Toca el otro dado.'),
         findsOneWidget,
       );
     });
@@ -99,7 +101,10 @@ void main() {
         puedeTirar: false,
       );
 
-      expect(find.text('Toca una casilla resaltada'), findsOneWidget);
+      expect(
+        find.textContaining('en una casilla marcada, pegada a un'),
+        findsOneWidget,
+      );
     });
   });
 
