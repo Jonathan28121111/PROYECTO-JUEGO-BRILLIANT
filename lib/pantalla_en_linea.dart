@@ -18,6 +18,7 @@ import 'sesion_bloc.dart';
 import 'sonidos.dart';
 import 'tablero_interfaz.dart';
 import 'vista_juego.dart';
+import 'pantalla_como_jugar.dart';
 
 const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
@@ -246,6 +247,7 @@ class _Contenido extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Jugar en línea'),
             actions: [
+              const BotonComoJugar(),
               ValueListenableBuilder<bool>(
                 valueListenable: Sonidos.activos,
                 builder: (_, activos, _) => IconButton(
@@ -1660,12 +1662,8 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
         _ when varios => 'Esperando a que los demás jueguen…',
         _ => 'Esperando a que $nombreRival juegue…',
       };
-    } else if (elegido == null) {
-      instruccion = 'Elige cuál de los dos números vas a escribir';
-    } else if (posibles.isEmpty) {
-      instruccion = 'Con ese número no hay jugada: prueba con el otro';
     } else {
-      instruccion = 'Toca una casilla resaltada';
+      instruccion = textoDeJugada(dados, elegido, posibles.isNotEmpty);
     }
 
     return Column(
