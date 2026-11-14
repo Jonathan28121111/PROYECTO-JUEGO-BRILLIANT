@@ -18,6 +18,7 @@ import 'sesion_bloc.dart';
 import 'sonidos.dart';
 import 'tablero_interfaz.dart';
 import 'vista_juego.dart';
+import 'pantalla_como_jugar.dart';
 
 const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
@@ -246,6 +247,7 @@ class _Contenido extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Jugar en línea'),
             actions: [
+              const BotonComoJugar(),
               ValueListenableBuilder<bool>(
                 valueListenable: Sonidos.activos,
                 builder: (_, activos, _) => IconButton(
@@ -1368,6 +1370,9 @@ class _TarjetaJugador extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = colorJugador(sala.indiceDe(jugador.usuario));
+    final puedeVer =
+        !esTu &&
+        (sala.fase == FaseSala.juego || sala.fase == FaseSala.terminada);
     final alineacion = esTu || alInicio
         ? CrossAxisAlignment.start
         : CrossAxisAlignment.end;
@@ -1408,10 +1413,52 @@ class _TarjetaJugador extends StatelessWidget {
           style: const TextStyle(fontSize: 14, height: 1.5, color: _texto),
         ),
         _EstadoJugador(jugador: jugador, sala: sala),
+        if (puedeVer)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.grid_view_rounded,
+                  size: 14,
+                  color: _primario(context),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    'Ver tablero',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.5,
+                      fontWeight: FontWeight.w600,
+                      color: _primario(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
-    if (compacta) return datos;
+    final tarjeta = compacta ? datos : _conAvatar(datos, color);
+    if (!puedeVer) return tarjeta;
+    return Tooltip(
+      message: 'Ver el tablero de ${jugador.usuario}',
+      child: InkWell(
+        key: Key('ver_tablero_${jugador.usuario}'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => mostrarTableroDe(context, sala, jugador),
+        child: Padding(padding: const EdgeInsets.all(2), child: tarjeta),
+      ),
+    );
+  }
 
+  static Color _primario(BuildContext context) =>
+      Theme.of(context).colorScheme.primary;
+
+  Widget _conAvatar(Widget datos, Color color) {
     return Row(
       mainAxisAlignment: esTu ? MainAxisAlignment.start : MainAxisAlignment.end,
       children: [
@@ -1583,15 +1630,7 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
         if (!j.conectado) j,
     ];
     final nivel = sala.datosNivel;
-    final marcas = <(int, int), List<MarcaZona>>{};
-    for (final zona in sala.zonasCompletadas) {
-      final celda = _primeraCelda(nivel, zona);
-      if (celda == null) continue;
-      marcas[celda] = [
-        for (final j in sala.quienesCompletaron(zona))
-          MarcaZona(j.usuario, colorJugador(sala.indiceDe(j.usuario))),
-      ];
-    }
+    final marcas = marcasDeZonas(sala);
 
     if (sala.ronda != _ronda) {
       _ronda = sala.ronda;
@@ -1623,12 +1662,8 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
         _ when varios => 'Esperando a que los demás jueguen…',
         _ => 'Esperando a que $nombreRival juegue…',
       };
-    } else if (elegido == null) {
-      instruccion = 'Elige cuál de los dos números vas a escribir';
-    } else if (posibles.isEmpty) {
-      instruccion = 'Con ese número no hay jugada: prueba con el otro';
     } else {
-      instruccion = 'Toca una casilla resaltada';
+      instruccion = textoDeJugada(dados, elegido, posibles.isNotEmpty);
     }
 
     return Column(
@@ -1663,6 +1698,116 @@ class _PartidaEnCursoState extends State<PartidaEnCurso> {
           ),
         ),
       ],
+    );
+  }
+}
+
+Map<(int, int), List<MarcaZona>> marcasDeZonas(SalaEnLinea sala) {
+  final marcas = <(int, int), List<MarcaZona>>{};
+  for (final zona in sala.zonasCompletadas) {
+    final celda = _primeraCelda(sala.datosNivel, zona);
+    if (celda == null) continue;
+    marcas[celda] = [
+      for (final j in sala.quienesCompletaron(zona))
+        MarcaZona(j.usuario, colorJugador(sala.indiceDe(j.usuario))),
+    ];
+  }
+  return marcas;
+}
+
+Future<void> mostrarTableroDe(
+  BuildContext context,
+  SalaEnLinea sala,
+  JugadorEnLinea jugador,
+) {
+  final bloc = context.read<PartidaBloc>();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    showDragHandle: true,
+    builder: (contexto) => BlocProvider.value(
+      value: bloc,
+      child: _TableroDeRival(usuario: jugador.usuario, salaInicial: sala),
+    ),
+  );
+}
+
+class _TableroDeRival extends StatelessWidget {
+  final String usuario;
+  final SalaEnLinea salaInicial;
+
+  const _TableroDeRival({required this.usuario, required this.salaInicial});
+
+  @override
+  Widget build(BuildContext context) {
+    final sala =
+        context.select<PartidaBloc, SalaEnLinea?>((b) => b.state.sala) ??
+        salaInicial;
+    final jugador = sala.jugadores
+        .where((j) => j.usuario.toLowerCase() == usuario.toLowerCase())
+        .firstOrNull;
+    if (jugador == null) return const SizedBox(height: 120);
+    final nivel = sala.datosNivel;
+    final tablero = tableroCon(nivel, jugador.casillas);
+    final color = colorJugador(sala.indiceDe(jugador.usuario));
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        key: const Key('tablero_rival'),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    AvatarUsuario(tamano: 36, color: color),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tablero de ${jugador.usuario}',
+                            style: _tituloSeccion,
+                          ),
+                          Text(
+                            '${jugador.puntos} '
+                            '${jugador.puntos == 1 ? 'punto' : 'puntos'}',
+                            style: _apoyo,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Cerrar',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TableroInterfaz(
+                  tablero: tablero,
+                  anclas: nivel.anclas,
+                  numeros: jugador.casillas,
+                  arrastrando: false,
+                  alSoltar: (_, _) {},
+                  alQuitar: (_) {},
+                  marcas: marcasDeZonas(sala),
+                  zonasApagadas: {
+                    ...sala.zonasCompletadas,
+                    for (final zona in tablero.zonasCompletas()) zona.id,
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

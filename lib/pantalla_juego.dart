@@ -8,6 +8,7 @@ import 'pantalla_niveles.dart';
 import 'sonidos.dart';
 import 'tablero_bloc.dart';
 import 'vista_juego.dart';
+import 'pantalla_como_jugar.dart';
 
 class PantallaJuego extends StatefulWidget {
   final List<Widget> acciones;
@@ -104,7 +105,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
             appBar: AppBar(
               leadingWidth: atras == null ? null : (ancho ? 136 : 56),
               leading: atras,
-              actions: widget.acciones,
+              actions: [const BotonComoJugar(), ...widget.acciones],
             ),
             body: switch (estado) {
               TableroSinIniciar(:final nivel) =>

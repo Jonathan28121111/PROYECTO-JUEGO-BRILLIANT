@@ -10,7 +10,6 @@ import 'almacen_servidor_io.dart'
 
 enum Sonido {
   tirarDados(['tirar_dados']),
-  elegirDado(['elegir_dado']),
   colocar(['colocar_1', 'colocar_2', 'colocar_3']),
   zonaCompletada(['zona_completada']),
   zonaRival(['zona_rival']),

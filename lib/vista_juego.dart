@@ -10,6 +10,20 @@ import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
 import 'sonidos.dart';
 
+String textoDeJugada(Dados? dados, int? elegido, bool hayDonde) {
+  if (dados == null) {
+    return 'Tirando los dados…';
+  }
+  if (elegido == null) {
+    return 'Toca uno de los dos dados: ese es el número que vas a escribir.';
+  }
+  if (!hayDonde) {
+    return 'El $elegido no cabe en ningún lado. Toca el otro dado.';
+  }
+  final otro = dados.companeroDe(elegido);
+  return 'Escribe el $elegido en una casilla marcada, pegada a un $otro.';
+}
+
 class VistaJuego extends StatelessWidget {
   final Tablero tablero;
   final Dados? dados;
@@ -58,11 +72,7 @@ class VistaJuego extends StatelessWidget {
     if (resuelto) return '¡Tablero resuelto!';
     if (dados == null) return 'Tirando los dados…';
     if (puedeTirar) return 'Con estos dados no hay jugada: se tiran de nuevo…';
-    if (elegido == null) return 'Elige cuál de los dos números vas a escribir';
-    if (posibles.isEmpty) {
-      return 'Con ese número no hay jugada: prueba con el otro';
-    }
-    return 'Toca una casilla resaltada';
+    return textoDeJugada(dados, elegido, posibles.isNotEmpty);
   }
 
   @override
@@ -74,10 +84,7 @@ class VistaJuego extends StatelessWidget {
     final colocarSinSonido =
         alColocar ??
         (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
-    void elegir(int n) {
-      Sonidos.tocar(Sonido.elegirDado);
-      elegirSinSonido(n);
-    }
+    void elegir(int n) => elegirSinSonido(n);
 
     void colocar(int f, int c) {
       Sonidos.tocar(Sonido.colocar);
