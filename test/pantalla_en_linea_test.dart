@@ -244,7 +244,10 @@ void main() {
 
       await tester.tap(find.byKey(const Key('dado_1')));
       await tester.pump();
-      expect(find.text('Toca una casilla resaltada'), findsOneWidget);
+      expect(
+        find.textContaining('en una casilla marcada, pegada a un'),
+        findsOneWidget,
+      );
 
       await tester.tapAt(centroDeCelda(tester, 0, 1));
       await tester.pump();
@@ -1053,6 +1056,73 @@ void main() {
 
       expect(find.text('Primer aviso'), findsNothing);
       expect(find.text('Segundo aviso'), findsOneWidget);
+      await cerrar(tester);
+    });
+  });
+
+  group('ver el tablero del rival', () {
+    List<Map<String, Object?>> conBeto(List<List<int>> casillas) => [
+      jugador('ana', listo: true),
+      jugador('beto', listo: true, puntos: 7, casillas: casillas),
+    ];
+
+    testWidgets('tocar al rival abre su tablero con sus numeros', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        enJuego(
+          jugadores: conBeto(const [
+            [0, 4, 6],
+            [3, 3, 2],
+          ]),
+        ),
+      );
+
+      expect(find.text('Ver tablero'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('ver_tablero_beto')));
+      await tester.pumpAndSettle();
+
+      final hoja = find.byKey(const Key('tablero_rival'));
+      expect(find.text('Tablero de beto'), findsOneWidget);
+      expect(find.descendant(of: hoja, matching: find.text('6')), findsOne);
+      expect(find.descendant(of: hoja, matching: find.text('2')), findsOne);
+      await cerrar(tester);
+    });
+
+    testWidgets('el tablero abierto se actualiza cuando el rival juega', (
+      tester,
+    ) async {
+      await abrir(tester);
+      await llega(tester, enJuego(jugadores: conBeto(const [])));
+      await tester.tap(find.byKey(const Key('ver_tablero_beto')));
+      await tester.pumpAndSettle();
+      final hoja = find.byKey(const Key('tablero_rival'));
+      expect(find.descendant(of: hoja, matching: find.text('5')), findsNothing);
+
+      await llega(
+        tester,
+        enJuego(
+          jugadores: conBeto(const [
+            [6, 0, 5],
+          ]),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.descendant(of: hoja, matching: find.text('5')), findsOne);
+      await cerrar(tester);
+    });
+
+    testWidgets('en la sala de espera no se puede ver', (tester) async {
+      await abrir(tester);
+      await llega(
+        tester,
+        estadoSala(jugadores: [jugador('ana'), jugador('beto')]),
+      );
+
+      expect(find.text('Ver tablero'), findsNothing);
       await cerrar(tester);
     });
   });

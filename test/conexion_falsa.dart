@@ -114,6 +114,7 @@ Map<String, Object?> jugador(
   bool terminado = false,
   bool fuera = false,
   Map<String, int> zonas = const {},
+  List<List<int>> casillas = const [],
   int? segundosGracia,
 }) => {
   'usuario': usuario,
@@ -125,5 +126,6 @@ Map<String, Object?> jugador(
   'terminado': terminado,
   'fuera': fuera,
   'zonas': zonas,
+  'casillas': casillas,
   'segundosGracia': segundosGracia,
 };
