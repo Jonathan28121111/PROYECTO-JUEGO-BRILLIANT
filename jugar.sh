@@ -86,7 +86,7 @@ elif [[ ! -f "$MARCA" ]]; then
   motivo="no había ninguna compilación"
 elif [[ "$(cat "$MARCA")" != "$DIRECCION_SERVIDOR" ]]; then
   motivo="cambió la dirección del servidor"
-elif [[ -n "$(find lib web pubspec.yaml pubspec.lock -newer "$MARCA" -print -quit)" ]]; then
+elif [[ -n "$(find lib web assets pubspec.yaml pubspec.lock -newer "$MARCA" -print -quit)" ]]; then
   motivo="cambió el código"
 fi
 
