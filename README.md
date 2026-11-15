@@ -96,7 +96,10 @@ fuera y los demás siguen; si solo queda uno, gana.
 Los dados son una grabación real de 2d6 del **SFX Pack - Rolling Dice** de
 Halfwits & Failed Crits (micrófono Neumann TLM103, licencia CC0). El resto son
 de los packs **Casino Audio** e **Interface Sounds** de
-[Kenney](https://kenney.nl) (CC0). Todos son libres para cualquier uso. Están
+[Kenney](https://kenney.nl) (CC0). Todos son libres para cualquier uso. La victoria y el sonido de
+completar una zona son archivos que eligió el equipo (`piglevelwin2` y
+`spin-complete`, de Pixabay); poner un número usa las cartas del
+**Boardgame Pack** de Kenney. Están
 en `assets/sonidos/` convertidos a AAC (`.m4a`) para que suenen en iPhone.
 Se silencian desde el menú de tu cuenta o con la bocina en el modo en línea.
 Suenan aunque el iPhone esté en modo silencio; para callarlos usa esa opción.
