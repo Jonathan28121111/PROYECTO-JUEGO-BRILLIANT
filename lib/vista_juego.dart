@@ -31,6 +31,9 @@ class VistaJuego extends StatelessWidget {
   final List<(int, int)> posibles;
   final bool puedeTirar;
   final bool resuelto;
+  final bool sinJugadas;
+  final VoidCallback? alSalir;
+  final VoidCallback? alJugarOtraVez;
   final Nivel nivel;
 
   final void Function(int numero)? alElegir;
@@ -56,6 +59,9 @@ class VistaJuego extends StatelessWidget {
     this.posibles = const [],
     this.puedeTirar = true,
     this.resuelto = false,
+    this.sinJugadas = false,
+    this.alSalir,
+    this.alJugarOtraVez,
     this.nivel = nivel1,
     this.alElegir,
     this.alColocar,
@@ -69,7 +75,14 @@ class VistaJuego extends StatelessWidget {
 
   String get _instruccion {
     if (instruccion case final texto?) return texto;
-    if (resuelto) return '¡Tablero resuelto!';
+    if (resuelto && sinJugadas) {
+      return 'Ya no queda ninguna jugada posible. Terminaste con '
+          '${puntos ?? tablero.puntos} puntos.';
+    }
+    if (resuelto) {
+      return '¡Tablero resuelto! Terminaste con '
+          '${puntos ?? tablero.puntos} puntos.';
+    }
     if (dados == null) return 'Tirando los dados…';
     if (puedeTirar) return 'Con estos dados no hay jugada: se tiran de nuevo…';
     return textoDeJugada(dados, elegido, posibles.isNotEmpty);
@@ -179,6 +192,7 @@ class VistaJuego extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _instruccion,
+            key: const Key('instruccion'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 14,
@@ -186,6 +200,37 @@ class VistaJuego extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (resuelto && (alSalir != null || alJugarOtraVez != null)) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                if (alSalir != null)
+                  FilledButton.icon(
+                    key: const Key('boton_salir_final'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1F2937),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: alSalir,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Salir a los tableros'),
+                  ),
+                if (alJugarOtraVez != null)
+                  OutlinedButton.icon(
+                    key: const Key('boton_otra_vez'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: alJugarOtraVez,
+                    icon: const Icon(Icons.replay_rounded),
+                    label: const Text('Jugar otra vez'),
+                  ),
+              ],
+            ),
+          ],
         ];
 
         if (!angosta && restricciones.maxHeight < 500) {
