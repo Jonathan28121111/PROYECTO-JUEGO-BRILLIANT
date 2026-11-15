@@ -730,9 +730,12 @@ void main() {
 
       expect(find.byKey(const Key('tira_jugadores')), findsOneWidget);
       expect(find.text('ana (tú)'), findsOneWidget);
-      expect(find.text('beto'), findsOneWidget);
-      expect(find.text('caro'), findsOneWidget);
+      final tira = find.byKey(const Key('tira_jugadores'));
+      expect(find.descendant(of: tira, matching: find.text('beto')), findsOne);
+      expect(find.descendant(of: tira, matching: find.text('caro')), findsOne);
       expect(find.byKey(const Key('puntos_caro')), findsOneWidget);
+      expect(find.byKey(const Key('boton_ver_tablero_beto')), findsOneWidget);
+      expect(find.byKey(const Key('boton_ver_tablero_caro')), findsOneWidget);
       await cerrar(tester);
     });
 
@@ -1080,8 +1083,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Ver tablero'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('ver_tablero_beto')));
+      expect(find.byKey(const Key('fila_ver_tableros')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('boton_ver_tablero_beto')));
       await tester.pumpAndSettle();
 
       final hoja = find.byKey(const Key('tablero_rival'));
@@ -1122,7 +1125,7 @@ void main() {
         estadoSala(jugadores: [jugador('ana'), jugador('beto')]),
       );
 
-      expect(find.text('Ver tablero'), findsNothing);
+      expect(find.byKey(const Key('fila_ver_tableros')), findsNothing);
       await cerrar(tester);
     });
   });
