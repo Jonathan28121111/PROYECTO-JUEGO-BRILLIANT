@@ -139,8 +139,8 @@ const Nivel nivel4 = Nivel(
     [2, 3, 4, 5, 4, 7, 2],
     [3, 3, 6, 6, 6, 7, 7],
     [2, 5, 4, 6, 4, 5, 2],
-    [3, 3, 6, 6, 6, 7, 7],
-    [2, 3, 4, 5, 4, 7, 2],
+    [9, 9, 6, 6, 6, 10, 10],
+    [2, 9, 4, 5, 4, 10, 2],
     [8, 8, 8, 8, 8, 8, 8],
   ],
   coloresPorZona: {
@@ -152,6 +152,8 @@ const Nivel nivel4 = Nivel(
     6: Tipo.morado,
     7: Tipo.rojo,
     8: Tipo.naranja1a3,
+    9: Tipo.rojo,
+    10: Tipo.rojo,
   },
   puntos: {
     Tipo.naranja4a6: [6, 4, 3],
