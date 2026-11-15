@@ -1177,6 +1177,24 @@ class Marcadores extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final usuario = context.read<PartidaBloc>().usuario;
+    final rivales = [
+      for (final j in sala.jugadores)
+        if (j.usuario.toLowerCase() != usuario.toLowerCase()) j,
+    ];
+    final puedeVer =
+        sala.fase == FaseSala.juego || sala.fase == FaseSala.terminada;
+    if (!puedeVer || rivales.isEmpty) return _marcador(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _marcador(context),
+        _FilaVerTableros(sala: sala, rivales: rivales),
+      ],
+    );
+  }
+
+  Widget _marcador(BuildContext context) {
     final bloc = context.watch<PartidaBloc>();
     final yo = sala.yo(bloc.usuario);
     final rival = sala.rival(bloc.usuario);
@@ -1352,6 +1370,76 @@ class Marcadores extends StatelessWidget {
   }
 }
 
+class _FilaVerTableros extends StatelessWidget {
+  final SalaEnLinea sala;
+  final List<JugadorEnLinea> rivales;
+
+  const _FilaVerTableros({required this.sala, required this.rivales});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('fila_ver_tableros'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: _borde)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            const Icon(Icons.grid_view_rounded, size: 20, color: _texto),
+            const SizedBox(width: 8),
+            Text(
+              rivales.length == 1 ? 'Ver tablero de' : 'Ver tableros:',
+              style: _cuerpo.copyWith(fontWeight: FontWeight.w600),
+            ),
+            for (final rival in rivales) ...[
+              const SizedBox(width: 10),
+              FilledButton(
+                key: Key('boton_ver_tablero_${rival.usuario}'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F2937),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => mostrarTableroDe(context, sala, rival),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: colorJugador(sala.indiceDe(rival.usuario)),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      rival.usuario,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TarjetaJugador extends StatelessWidget {
   final JugadorEnLinea jugador;
   final SalaEnLinea sala;
@@ -1413,33 +1501,6 @@ class _TarjetaJugador extends StatelessWidget {
           style: const TextStyle(fontSize: 14, height: 1.5, color: _texto),
         ),
         _EstadoJugador(jugador: jugador, sala: sala),
-        if (puedeVer)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.grid_view_rounded,
-                  size: 14,
-                  color: _primario(context),
-                ),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    'Ver tablero',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                      color: _primario(context),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
     final tarjeta = compacta ? datos : _conAvatar(datos, color);
@@ -1454,9 +1515,6 @@ class _TarjetaJugador extends StatelessWidget {
       ),
     );
   }
-
-  static Color _primario(BuildContext context) =>
-      Theme.of(context).colorScheme.primary;
 
   Widget _conAvatar(Widget datos, Color color) {
     return Row(
