@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'pantalla_anclas.dart';
 import 'pantalla_niveles.dart';
+import 'sonidos.dart';
 import 'tablero_bloc.dart';
 import 'vista_juego.dart';
+import 'pantalla_como_jugar.dart';
 
 class PantallaJuego extends StatefulWidget {
   final List<Widget> acciones;
@@ -23,6 +27,47 @@ class PantallaJuego extends StatefulWidget {
 
 class _PantallaJuegoState extends State<PantallaJuego> {
   bool _viendoTableros = false;
+  int? _zonasCompletas;
+  Timer? _tiradaAutomatica;
+
+  static const esperaPrimeraTirada = Duration(milliseconds: 600);
+  static const esperaSinJugada = Duration(milliseconds: 1800);
+
+  @override
+  void dispose() {
+    _tiradaAutomatica?.cancel();
+    super.dispose();
+  }
+
+  void _tirarSolo(TableroBloc bloc, TableroState estado) {
+    _tiradaAutomatica?.cancel();
+    _tiradaAutomatica = null;
+    if (estado is! TableroEnJuego || !estado.puedeTirar) return;
+    _tiradaAutomatica = Timer(
+      estado.dados == null ? esperaPrimeraTirada : esperaSinJugada,
+      () => bloc.add(DadosTirados()),
+    );
+  }
+
+  void _sonar(TableroState estado) {
+    switch (estado) {
+      case TableroSinIniciar():
+        _zonasCompletas = null;
+      case TableroEnJuego(:final tablero):
+        final cuantas = tablero.zonasCompletas().length;
+        final antes = _zonasCompletas;
+        if (antes != null && cuantas > antes) {
+          Sonidos.tocar(
+            Sonido.zonaCompletada,
+            retraso: const Duration(milliseconds: 180),
+          );
+        }
+        _zonasCompletas = cuantas;
+      case TableroResuelto(:final completo):
+        Sonidos.tocar(completo ? Sonido.ganar : Sonido.perder);
+        _zonasCompletas = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +76,11 @@ class _PantallaJuegoState extends State<PantallaJuego> {
 
     return BlocProvider(
       create: (_) => TableroBloc(),
-      child: BlocBuilder<TableroBloc, TableroState>(
+      child: BlocConsumer<TableroBloc, TableroState>(
+        listener: (context, estado) {
+          _sonar(estado);
+          _tirarSolo(context.read<TableroBloc>(), estado);
+        },
         builder: (context, estado) {
           final enSeleccion =
               estado is TableroSinIniciar && estado.nivel == null;
@@ -56,7 +105,7 @@ class _PantallaJuegoState extends State<PantallaJuego> {
             appBar: AppBar(
               leadingWidth: atras == null ? null : (ancho ? 136 : 56),
               leading: atras,
-              actions: widget.acciones,
+              actions: [const BotonComoJugar(), ...widget.acciones],
             ),
             body: switch (estado) {
               TableroSinIniciar(:final nivel) =>
@@ -75,12 +124,21 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                 posibles: juego.posibles,
                 puedeTirar: juego.puedeTirar,
                 nivel: juego.nivel,
+                conBotonTirar: false,
               ),
-              TableroResuelto(:final tablero, :final nivel) => VistaJuego(
-                tablero: tablero,
-                resuelto: true,
-                nivel: nivel,
-              ),
+              TableroResuelto(:final tablero, :final nivel, :final completo) =>
+                VistaJuego(
+                  tablero: tablero,
+                  resuelto: true,
+                  sinJugadas: !completo,
+                  nivel: nivel,
+                  conBotonTirar: false,
+                  alSalir: () =>
+                      context.read<TableroBloc>().add(VolverAlInicio()),
+                  alJugarOtraVez: () => context.read<TableroBloc>()
+                    ..add(VolverAlInicio())
+                    ..add(NivelElegido(nivel)),
+                ),
             },
           );
         },

@@ -5,6 +5,7 @@ import 'colores.dart';
 import 'nivel.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
+import 'pantalla_como_jugar.dart';
 
 const Color _texto = Color(0xFF111827);
 const Color _secundario = Color(0xFF6B7280);
@@ -82,7 +83,15 @@ class _SelectorModo extends StatelessWidget {
           'Juega solo o reta a otra persona en línea.',
           style: TextStyle(fontSize: 16, height: 1.5, color: _secundario),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          key: const Key('enlace_como_jugar'),
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          icon: const Icon(Icons.help_outline_rounded, size: 20),
+          label: const Text('¿Cómo se juega? Míralo en 1 minuto'),
+          onPressed: () => abrirComoJugar(context),
+        ),
+        const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, espacio) => espacio.maxWidth < 640
               ? Column(

@@ -8,6 +8,21 @@ import 'panel_reglas.dart';
 import 'tablero.dart';
 import 'tablero_bloc.dart';
 import 'tablero_interfaz.dart';
+import 'sonidos.dart';
+
+String textoDeJugada(Dados? dados, int? elegido, bool hayDonde) {
+  if (dados == null) {
+    return 'Tirando los dados…';
+  }
+  if (elegido == null) {
+    return 'Toca uno de los dos dados: ese es el número que vas a escribir.';
+  }
+  if (!hayDonde) {
+    return 'El $elegido no cabe en ningún lado. Toca el otro dado.';
+  }
+  final otro = dados.companeroDe(elegido);
+  return 'Escribe el $elegido en una casilla marcada, pegada a un $otro.';
+}
 
 class VistaJuego extends StatelessWidget {
   final Tablero tablero;
@@ -16,6 +31,9 @@ class VistaJuego extends StatelessWidget {
   final List<(int, int)> posibles;
   final bool puedeTirar;
   final bool resuelto;
+  final bool sinJugadas;
+  final VoidCallback? alSalir;
+  final VoidCallback? alJugarOtraVez;
   final Nivel nivel;
 
   final void Function(int numero)? alElegir;
@@ -31,6 +49,8 @@ class VistaJuego extends StatelessWidget {
 
   final Map<(int, int), List<MarcaZona>> marcas;
 
+  final Set<int>? zonasApagadas;
+
   const VistaJuego({
     super.key,
     required this.tablero,
@@ -39,6 +59,9 @@ class VistaJuego extends StatelessWidget {
     this.posibles = const [],
     this.puedeTirar = true,
     this.resuelto = false,
+    this.sinJugadas = false,
+    this.alSalir,
+    this.alJugarOtraVez,
     this.nivel = nivel1,
     this.alElegir,
     this.alColocar,
@@ -47,29 +70,39 @@ class VistaJuego extends StatelessWidget {
     this.instruccion,
     this.puntos,
     this.marcas = const {},
+    this.zonasApagadas,
   });
 
   String get _instruccion {
     if (instruccion case final texto?) return texto;
-    if (resuelto) return '¡Tablero resuelto!';
-    if (dados == null) return 'Tira los dados para jugar';
-    if (puedeTirar) return 'No hay ninguna jugada: vuelve a tirar';
-    if (elegido == null) return 'Elige cuál de los dos números vas a escribir';
-    if (posibles.isEmpty) {
-      return 'Con ese número no hay jugada: prueba con el otro';
+    if (resuelto && sinJugadas) {
+      return 'Ya no queda ninguna jugada posible. Terminaste con '
+          '${puntos ?? tablero.puntos} puntos.';
     }
-    return 'Toca una casilla resaltada';
+    if (resuelto) {
+      return '¡Tablero resuelto! Terminaste con '
+          '${puntos ?? tablero.puntos} puntos.';
+    }
+    if (dados == null) return 'Tirando los dados…';
+    if (puedeTirar) return 'Con estos dados no hay jugada: se tiran de nuevo…';
+    return textoDeJugada(dados, elegido, posibles.isNotEmpty);
   }
 
   @override
   Widget build(BuildContext context) {
     final tirada = dados;
-    final elegir =
+    final elegirSinSonido =
         alElegir ??
         (int n) => context.read<TableroBloc>().add(NumeroElegido(n));
-    final colocar =
+    final colocarSinSonido =
         alColocar ??
         (int f, int c) => context.read<TableroBloc>().add(NumeroColocado(f, c));
+    void elegir(int n) => elegirSinSonido(n);
+
+    void colocar(int f, int c) {
+      Sonidos.tocar(Sonido.colocar);
+      colocarSinSonido(f, c);
+    }
 
     final numeros = <(int, int), int>{};
     for (var fila = 0; fila < tablero.valores.length; fila++) {
@@ -97,6 +130,9 @@ class VistaJuego extends StatelessWidget {
           alQuitar: (_) {},
           alTocar: (celda) => colocar(celda.$1, celda.$2),
           marcas: marcas,
+          zonasApagadas:
+              zonasApagadas ??
+              {for (final zona in tablero.zonasCompletas()) zona.id},
         );
         final (izquierda, derecha) = reglasDe(nivel);
 
@@ -111,6 +147,7 @@ class VistaJuego extends StatelessWidget {
             children: [
               DadoAnimado(
                 key: const Key('dado_1'),
+                sonarAlRodar: true,
                 valor: tirada?.primero,
                 tirada: tirada,
                 seleccionado: tirada != null && elegido == tirada.primero,
@@ -155,6 +192,7 @@ class VistaJuego extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _instruccion,
+            key: const Key('instruccion'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 14,
@@ -162,6 +200,37 @@ class VistaJuego extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (resuelto && (alSalir != null || alJugarOtraVez != null)) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                if (alSalir != null)
+                  FilledButton.icon(
+                    key: const Key('boton_salir_final'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF1F2937),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: alSalir,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Salir a los tableros'),
+                  ),
+                if (alJugarOtraVez != null)
+                  OutlinedButton.icon(
+                    key: const Key('boton_otra_vez'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    onPressed: alJugarOtraVez,
+                    icon: const Icon(Icons.replay_rounded),
+                    label: const Text('Jugar otra vez'),
+                  ),
+              ],
+            ),
+          ],
         ];
 
         if (!angosta && restricciones.maxHeight < 500) {

@@ -6,7 +6,9 @@ import 'colores.dart';
 import 'conexion_juego.dart';
 import 'nivel.dart';
 import 'sala_en_linea.dart';
+import 'sonidos.dart';
 import 'tablero.dart';
+import 'tipo_zona.dart';
 
 sealed class PartidaEvent {}
 
@@ -29,6 +31,16 @@ class CorregirCodigo extends PartidaEvent {}
 class SalirSala extends PartidaEvent {}
 
 class EmpezarPartida extends PartidaEvent {}
+
+class CambiarReloj extends PartidaEvent {
+  final bool conReloj;
+  CambiarReloj(this.conReloj);
+}
+
+class MarcarListo extends PartidaEvent {
+  final bool listo;
+  MarcarListo(this.listo);
+}
 
 class EnviarAnclas extends PartidaEvent {
   final Tablero tablero;
@@ -55,6 +67,24 @@ class _ConexionPerdida extends PartidaEvent {
 }
 
 enum EstadoConexion { conectando, conectado, reconectando, expulsado }
+
+class EventoZona {
+  final String usuario;
+  final bool esTu;
+  final Tipo tipo;
+  final int puntos;
+
+  const EventoZona({
+    required this.usuario,
+    required this.esTu,
+    required this.tipo,
+    required this.puntos,
+  });
+
+  String get texto => esTu
+      ? 'Completaste una zona ${nombreZona(tipo)} · +$puntos'
+      : '$usuario completó una zona ${nombreZona(tipo)} · +$puntos';
+}
 
 class JugadaPendiente {
   final int ronda;
@@ -105,6 +135,9 @@ class PartidaState {
 
   final String? errorCodigo;
 
+  final List<EventoZona> eventos;
+  final int numeroEventos;
+
   const PartidaState({
     this.conexion = EstadoConexion.conectando,
     this.sala,
@@ -118,6 +151,8 @@ class PartidaState {
     this.numeroAviso = 0,
     this.motivoExpulsion,
     this.errorCodigo,
+    this.eventos = const [],
+    this.numeroEventos = 0,
   });
 
   bool get conectado => conexion == EstadoConexion.conectado;
@@ -155,6 +190,8 @@ class PartidaState {
     numeroAviso: numeroAviso,
     motivoExpulsion: motivoExpulsion ?? this.motivoExpulsion,
     errorCodigo: errorCodigo == null ? this.errorCodigo : errorCodigo(),
+    eventos: eventos,
+    numeroEventos: numeroEventos,
   );
 
   PartidaState conAviso(String texto, {bool error = false}) => PartidaState(
@@ -170,6 +207,25 @@ class PartidaState {
     numeroAviso: numeroAviso + 1,
     motivoExpulsion: motivoExpulsion,
     errorCodigo: errorCodigo,
+    eventos: eventos,
+    numeroEventos: numeroEventos,
+  );
+
+  PartidaState conEventos(List<EventoZona> nuevos) => PartidaState(
+    conexion: conexion,
+    sala: sala,
+    cargando: cargando,
+    anclasEnviadas: anclasEnviadas,
+    pendiente: pendiente,
+    intentos: intentos,
+    segundosParaReintentar: segundosParaReintentar,
+    aviso: aviso,
+    avisoEsError: avisoEsError,
+    numeroAviso: numeroAviso,
+    motivoExpulsion: motivoExpulsion,
+    errorCodigo: errorCodigo,
+    eventos: nuevos,
+    numeroEventos: numeroEventos + 1,
   );
 }
 
@@ -235,6 +291,12 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
       _pedir(emit, {'tipo': 'salir_sala'});
     });
     on<EmpezarPartida>((_, emit) => _pedir(emit, {'tipo': 'empezar'}));
+    on<CambiarReloj>(
+      (e, emit) => _pedir(emit, {'tipo': 'ajustes', 'conReloj': e.conReloj}),
+    );
+    on<MarcarListo>(
+      (e, emit) => _pedir(emit, {'tipo': 'preparado', 'valor': e.listo}),
+    );
     on<EnviarAnclas>(_alEnviarAnclas);
     on<ColocarNumero>(_alColocar);
     on<Rendirse>((_, emit) => _pedir(emit, {'tipo': 'rendirse'}));
@@ -364,6 +426,7 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         );
 
       case 'error':
+        Sonidos.tocar(Sonido.error);
         final clave = m['error'];
         if (clave == 'sin_sesion' || clave == 'sin_saludo') {
           _expulsar(
@@ -399,9 +462,42 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
     }
   }
 
-  String? _zonasNuevas(SalaEnLinea? antes, SalaEnLinea ahora) {
-    if (antes == null || antes.codigo != ahora.codigo) return null;
-    final avisos = <String>[];
+  void _sonarEstado(SalaEnLinea? antes, SalaEnLinea ahora) {
+    if (antes == null || antes.codigo != ahora.codigo) return;
+    if (ahora.fase == FaseSala.terminada && antes.fase != FaseSala.terminada) {
+      final gane =
+          ahora.resultado?.ganador?.toLowerCase() == usuario.toLowerCase();
+      Sonidos.tocar(gane ? Sonido.ganar : Sonido.perder);
+      return;
+    }
+    var mia = false;
+    var deOtro = false;
+    for (final jugador in ahora.jugadores) {
+      final previo = antes.jugadores
+          .where(
+            (j) => j.usuario.toLowerCase() == jugador.usuario.toLowerCase(),
+          )
+          .firstOrNull;
+      final nuevas = jugador.zonas.keys.where(
+        (z) => !(previo?.zonas.containsKey(z) ?? false),
+      );
+      if (nuevas.isEmpty) continue;
+      if (jugador.usuario.toLowerCase() == usuario.toLowerCase()) {
+        mia = true;
+      } else {
+        deOtro = true;
+      }
+    }
+    if (mia) {
+      Sonidos.tocar(Sonido.zonaCompletada);
+    } else if (deOtro) {
+      Sonidos.tocar(Sonido.zonaRival);
+    }
+  }
+
+  List<EventoZona> _zonasNuevas(SalaEnLinea? antes, SalaEnLinea ahora) {
+    if (antes == null || antes.codigo != ahora.codigo) return const [];
+    final eventos = <EventoZona>[];
     for (final jugador in ahora.jugadores) {
       final previo = antes.jugadores
           .where(
@@ -414,17 +510,23 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         if (vistas.contains(zona)) continue;
         final tipo = ahora.datosNivel.coloresPorZona[zona];
         if (tipo == null) continue;
-        final puntos = ahora.puntosDeZona(jugador, zona);
-        final quien = esTu ? 'Completaste' : '${jugador.usuario} completó';
-        avisos.add('$quien una zona ${nombreZona(tipo)} (+$puntos)');
+        eventos.add(
+          EventoZona(
+            usuario: jugador.usuario,
+            esTu: esTu,
+            tipo: tipo,
+            puntos: ahora.puntosDeZona(jugador, zona),
+          ),
+        );
       }
     }
-    return avisos.isEmpty ? null : avisos.join(' · ');
+    return eventos;
   }
 
   void _alEstado(SalaEnLinea sala, Emitter<PartidaState> emit) {
     _esperandoUnirse = false;
     final zonas = _zonasNuevas(state.sala, sala);
+    _sonarEstado(state.sala, sala);
     var nuevo = state.copyWith(
       sala: () => sala,
       cargando: false,
@@ -455,13 +557,8 @@ class PartidaBloc extends Bloc<PartidaEvent, PartidaState> {
         _conexion?.enviar(pendiente.mensaje);
       }
     }
-    if (aviso != null) {
-      emit(nuevo.conAviso(aviso, error: true));
-    } else if (zonas != null) {
-      emit(nuevo.conAviso(zonas));
-    } else {
-      emit(nuevo);
-    }
+    emit(aviso == null ? nuevo : nuevo.conAviso(aviso, error: true));
+    if (zonas.isNotEmpty) emit(state.conEventos(zonas));
 
     _quizaPasar(emit);
   }

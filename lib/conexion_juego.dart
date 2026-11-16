@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import 'cliente_cuentas.dart';
+import 'servidor.dart';
 
 abstract interface class ConexionJuego {
   Stream<Map<String, Object?>> get mensajes;
@@ -15,8 +15,8 @@ abstract interface class ConexionJuego {
 
 typedef AbrirConexion = Future<ConexionJuego> Function();
 
-Uri direccionJuego([String base = direccionServidor]) {
-  final http = Uri.parse(base);
+Uri direccionJuego([String? base]) {
+  final http = Uri.parse(base ?? servidorActual.value);
   return http.replace(
     scheme: http.scheme == 'https' ? 'wss' : 'ws',
     path: '${http.path.replaceAll(RegExp(r'/$'), '')}/juego',

@@ -44,20 +44,20 @@ void main() {
     testWidgets('resuelto gana sobre todo lo demas', (tester) async {
       await montarVista(tester, tablero: Tablero.nivel1(), resuelto: true);
 
-      expect(find.text('¡Tablero resuelto!'), findsOneWidget);
+      expect(find.textContaining('¡Tablero resuelto!'), findsOneWidget);
     });
 
     testWidgets('sin tirada pide tirar', (tester) async {
       await montarVista(tester);
 
-      expect(find.text('Tira los dados para jugar'), findsOneWidget);
+      expect(find.text('Tirando los dados…'), findsOneWidget);
     });
 
     testWidgets('si se puede volver a tirar lo dice', (tester) async {
       await montarVista(tester, dados: const Dados(5, 6), puedeTirar: true);
 
       expect(
-        find.text('No hay ninguna jugada: vuelve a tirar'),
+        find.text('Con estos dados no hay jugada: se tiran de nuevo…'),
         findsOneWidget,
       );
     });
@@ -66,7 +66,9 @@ void main() {
       await montarVista(tester, dados: const Dados(3, 2), puedeTirar: false);
 
       expect(
-        find.text('Elige cuál de los dos números vas a escribir'),
+        find.text(
+          'Toca uno de los dos dados: ese es el número que vas a escribir.',
+        ),
         findsOneWidget,
       );
     });
@@ -83,7 +85,7 @@ void main() {
       );
 
       expect(
-        find.text('Con ese número no hay jugada: prueba con el otro'),
+        find.textContaining('no cabe en ningún lado. Toca el otro dado.'),
         findsOneWidget,
       );
     });
@@ -99,7 +101,10 @@ void main() {
         puedeTirar: false,
       );
 
-      expect(find.text('Toca una casilla resaltada'), findsOneWidget);
+      expect(
+        find.textContaining('en una casilla marcada, pegada a un'),
+        findsOneWidget,
+      );
     });
   });
 

@@ -47,6 +47,9 @@ String nombreZona(Tipo tipo) => switch (tipo) {
   Tipo.naranja4a6 => 'naranja (4-6)',
 };
 
+Color colorApagado(Color color) =>
+    Color.lerp(color, const Color(0xFF6B7280), 0.5)!;
+
 Color colorTextoSobre(Color fondo) {
   return ThemeData.estimateBrightnessForColor(fondo) == Brightness.dark
       ? Colors.white

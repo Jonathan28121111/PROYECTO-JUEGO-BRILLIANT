@@ -1,11 +1,11 @@
 {
-    "name": "pruebas_numeros",
-    "short_name": "pruebas_numeros",
+    "name": "Juego Brilliant",
+    "short_name": "Brilliant",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Juego de lógica con dados y zonas de colores.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

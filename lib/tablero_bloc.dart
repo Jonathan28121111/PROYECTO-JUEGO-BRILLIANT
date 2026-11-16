@@ -85,7 +85,9 @@ class TableroResuelto extends TableroState {
   final Tablero tablero;
   final Nivel nivel;
 
-  TableroResuelto(this.tablero, {this.nivel = nivel1});
+  final bool completo;
+
+  TableroResuelto(this.tablero, {this.nivel = nivel1, this.completo = true});
 
   @override
   bool get puedeAvanzar => true;
@@ -173,6 +175,10 @@ class TableroBloc extends Bloc<TableroEvent, TableroState> {
   TableroState _estadoSegun(Tablero tablero) {
     if (tablero.estaCompleto() && tablero.esValido()) {
       return TableroResuelto(tablero, nivel: _nivel);
+    }
+    final empezado = tablero.valores.any((fila) => fila.any((v) => v != null));
+    if (empezado && !tablero.hayAlgunaJugada()) {
+      return TableroResuelto(tablero, nivel: _nivel, completo: false);
     }
     return TableroEnJuego(tablero, nivel: _nivel);
   }
