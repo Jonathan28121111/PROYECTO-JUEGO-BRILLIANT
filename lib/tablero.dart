@@ -121,6 +121,15 @@ class Tablero {
   int get puntos =>
       zonasCompletas().fold(0, (suma, zona) => suma + zona.puntos.first);
 
+  bool hayAlgunaJugada() {
+    for (var a = 1; a <= 6; a++) {
+      for (var b = 1; b <= 6; b++) {
+        if (celdasPosibles(a, b).isNotEmpty) return true;
+      }
+    }
+    return false;
+  }
+
   bool estaCompleto() {
     for (var fila = 0; fila < valores.length; fila++) {
       for (var columna = 0; columna < valores[fila].length; columna++) {

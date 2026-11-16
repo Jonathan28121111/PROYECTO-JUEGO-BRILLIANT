@@ -63,8 +63,8 @@ class _PantallaJuegoState extends State<PantallaJuego> {
           );
         }
         _zonasCompletas = cuantas;
-      case TableroResuelto():
-        Sonidos.tocar(Sonido.ganar);
+      case TableroResuelto(:final completo):
+        Sonidos.tocar(completo ? Sonido.ganar : Sonido.perder);
         _zonasCompletas = null;
     }
   }
@@ -126,11 +126,19 @@ class _PantallaJuegoState extends State<PantallaJuego> {
                 nivel: juego.nivel,
                 conBotonTirar: false,
               ),
-              TableroResuelto(:final tablero, :final nivel) => VistaJuego(
-                tablero: tablero,
-                resuelto: true,
-                nivel: nivel,
-              ),
+              TableroResuelto(:final tablero, :final nivel, :final completo) =>
+                VistaJuego(
+                  tablero: tablero,
+                  resuelto: true,
+                  sinJugadas: !completo,
+                  nivel: nivel,
+                  conBotonTirar: false,
+                  alSalir: () =>
+                      context.read<TableroBloc>().add(VolverAlInicio()),
+                  alJugarOtraVez: () => context.read<TableroBloc>()
+                    ..add(VolverAlInicio())
+                    ..add(NivelElegido(nivel)),
+                ),
             },
           );
         },
