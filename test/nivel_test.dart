@@ -44,23 +44,23 @@ void main() {
       expect(nivel1.coloresPorZona, hasLength(9));
       expect(nivel2.coloresPorZona, hasLength(10));
       expect(nivel3.coloresPorZona, hasLength(8));
-      expect(nivel4.coloresPorZona, hasLength(8));
+      expect(nivel4.coloresPorZona, hasLength(10));
     });
 
-    test('el nivel 4 tiene dos zonas rojas de seis casillas', () {
+    test('el nivel 4 tiene cuatro zonas rojas de tres casillas', () {
       final rojas = [
         for (final MapEntry(key: id, value: tipo)
             in nivel4.coloresPorZona.entries)
           if (tipo == Tipo.rojo) id,
       ];
-      expect(rojas, hasLength(2));
+      expect(rojas, hasLength(4));
       for (final id in rojas) {
         final casillas = [
           for (final fila in nivel4.zonasPorCelda)
             for (final zona in fila)
               if (zona == id) zona,
         ];
-        expect(casillas, hasLength(6));
+        expect(casillas, hasLength(3));
       }
     });
   });

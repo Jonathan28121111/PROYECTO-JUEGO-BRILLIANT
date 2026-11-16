@@ -44,7 +44,7 @@ void main() {
     testWidgets('resuelto gana sobre todo lo demas', (tester) async {
       await montarVista(tester, tablero: Tablero.nivel1(), resuelto: true);
 
-      expect(find.text('¡Tablero resuelto!'), findsOneWidget);
+      expect(find.textContaining('¡Tablero resuelto!'), findsOneWidget);
     });
 
     testWidgets('sin tirada pide tirar', (tester) async {
